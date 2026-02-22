@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Massively Multiplayer Real-time Architecture | MQTT Beyond</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xyflow/react@12.8.5/dist/style.css" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        :root {
+            --brand-400: #a78bfa;
+            --brand-500: #8b5cf6;
+            --brand-600: #7c3aed;
+            --accent-400: #60a5fa;
+            --green-500: #10b981;
+            --green-600: #059669;
+            --text: #0f172a;
+            --text-muted: #425466;
+            --border: #e2e8f0;
+            --card-bg: rgba(255, 255, 255, 0.82);
+            --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 3px 18px rgba(0, 0, 0, 0.07);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            font-family: "Geist", system-ui, sans-serif;
+            color: var(--text);
+        }
+
+        body {
+            background:
+                radial-gradient(ellipse 80% 60% at 95% 5%, rgba(139, 92, 246, 0.18) 0%, transparent 50%),
+                radial-gradient(ellipse 65% 55% at 5% 90%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+                #fafafa;
+            background-attachment: fixed;
+        }
+
+        /* ── Deck ── */
+        .deck {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+        }
+
+        /* ── Slides ── */
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 2.8rem 5rem 1.5rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.22s ease;
+        }
+
+        .slide.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ── Slide title ── */
+        .slide-title-screen {
+            justify-content: center;
+            align-items: flex-start;
+            gap: 0;
+        }
+
+        .slide-tag {
+            color: var(--brand-400);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .slide h2 {
+            font-size: clamp(1.7rem, 2.8vw, 2.4rem);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+            margin-top: 0.35rem;
+            flex-shrink: 0;
+        }
+
+        .slide-content {
+            flex: 1;
+            min-height: 0;
+            margin-top: 1.4rem;
+            overflow: hidden;
+        }
+
+        /* ── Title slide ── */
+        .slide-title-screen h1 {
+            font-size: clamp(2.4rem, 4vw, 3.4rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-top: 0;
+        }
+
+        .title-gradient {
+            background: linear-gradient(92deg, #8b5cf6, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-sub {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-top: 1rem;
+            max-width: 600px;
+        }
+
+        .title-meta {
+            margin-top: 2.5rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .title-dot {
+            background: var(--brand-500);
+            border-radius: 999px;
+            height: 6px;
+            width: 6px;
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.9rem;
+            padding: 1.1rem 1.3rem;
+            box-shadow: var(--shadow);
+        }
+
+        .card-bad {
+            border-color: rgba(239, 68, 68, 0.32) !important;
+        }
+
+        .card-good {
+            border-color: rgba(16, 185, 129, 0.32) !important;
+        }
+
+        .card-new {
+            border-color: rgba(16, 185, 129, 0.4) !important;
+            background: rgba(16, 185, 129, 0.04);
+        }
+
+        .card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .card h3.bad {
+            color: #dc2626;
+        }
+
+        .card h3.good {
+            color: var(--green-600);
+        }
+
+        .card h3.new-feat {
+            color: var(--green-600);
+        }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.55;
+        }
+
+        .card p+p {
+            margin-top: 0.5rem;
+        }
+
+        .card strong {
+            color: var(--text);
+        }
+
+        /* ── Grid layouts ── */
+        .g2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .g3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .g4 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.9rem;
+            height: 100%;
+        }
+
+        /* ── Bullets ── */
+        .bullets {
+            list-style: none;
+        }
+
+        .bullets li {
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 1rem;
+            padding: 0.52rem 0;
+            line-height: 1.45;
+        }
+
+        .bullets li:last-child {
+            border-bottom: none;
+        }
+
+        .bullets li strong {
+            color: var(--text);
+        }
+
+        .bullets li code {
+            background: rgba(139, 92, 246, 0.09);
+            border-radius: 4px;
+            font-family: "Geist Mono", monospace;
+            font-size: 0.88em;
+            padding: 1px 5px;
+        }
+
+        /* ── Code block ── */
+        .code {
+            background: #f8fbff;
+            border: 1px solid var(--border);
+            border-radius: 0.6rem;
+            font-family: "Geist Mono", ui-monospace, monospace;
+            font-size: 0.82rem;
+            line-height: 1.55;
+            overflow-x: auto;
+            padding: 0.7rem 0.9rem;
+            white-space: pre;
+            margin-top: 0.8rem;
+        }
+
+        .cm {
+            color: #64748b;
+        }
+
+        .kw {
+            color: var(--brand-600);
+            font-weight: 600;
+        }
+
+        .st {
+            color: #059669;
+        }
+
+        .hi {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        /* ── Stat grid ── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.9rem;
+            box-shadow: var(--shadow);
+            padding: 1.1rem 1rem;
+            text-align: center;
+        }
+
+        .stat-num {
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            line-height: 1;
+        }
+
+        .stat-lbl {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            font-weight: 500;
+            margin-top: 0.35rem;
+        }
+
+        .stat-sub {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            margin-top: 0.15rem;
+        }
+
+        /* ── New-feature badge ── */
+        .new-badge {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 999px;
+            color: var(--green-600);
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            padding: 2px 7px;
+            text-transform: uppercase;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        /* ── Diagram slide ── */
+        .rf-wrap {
+            border: 1px solid var(--border);
+            border-radius: 0.9rem;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            width: min(1600px, calc(100vw - 8rem));
+            margin-left: 50%;
+            transform: translateX(-50%);
+            height: 100%;
+            position: relative;
+        }
+
+        .rf-shell {
+            height: 100%;
+            width: 100%;
+            border: none;
+        }
+
+        .rf-shell .react-flow__attribution {
+            display: none;
+        }
+
+        .rf-shell .react-flow__background {
+            background: transparent;
+        }
+
+        .rf-shell .react-flow__controls {
+            background: #fff;
+            border-color: var(--border);
+        }
+
+        .rf-shell .react-flow__controls-button {
+            background: #fff;
+            border-color: var(--border);
+        }
+
+        .rf-shell .react-flow__controls-button:hover {
+            background: #f8fafc;
+        }
+
+        .rf-shell .react-flow__controls-button svg {
+            fill: var(--text);
+        }
+
+        .rf-shell .react-flow__controls-button svg path {
+            fill: var(--text);
+        }
+
+        .rf-shell .react-flow__node.selected,
+        .rf-shell .react-flow__node.selectable:focus,
+        .rf-shell .react-flow__node.selectable:focus-visible {
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        /* RF node cards */
+        .rf-device-card,
+        .rf-output-card {
+            align-items: flex-start;
+            border-radius: 11px;
+            display: flex;
+            gap: 9px;
+            min-width: 210px;
+            padding: 10px 12px;
+            background: #fff;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 2px 8px rgba(0, 0, 0, 0.07);
+        }
+
+        .rf-icon {
+            align-items: center;
+            border-radius: 8px;
+            display: inline-flex;
+            flex-shrink: 0;
+            height: 28px;
+            justify-content: center;
+            width: 28px;
+        }
+
+        .rf-icon svg {
+            height: 14px;
+            width: 14px;
+        }
+
+        .rf-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .rf-kicker {
+            color: #64748b;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        .rf-title {
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+        }
+
+        .rf-sub {
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 500;
+            line-height: 1.3;
+            margin-top: 1px;
+        }
+
+        .rf-dot {
+            border-radius: 999px;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.7);
+            flex-shrink: 0;
+            height: 7px;
+            margin-left: auto;
+            margin-top: 8px;
+            width: 7px;
+        }
+
+        .rf-handle-hidden {
+            height: 8px !important;
+            opacity: 0;
+            pointer-events: none;
+            width: 8px !important;
+        }
+
+        /* EMQX cluster node */
+        .rf-cluster-wrap {
+            position: relative;
+            width: 385px;
+        }
+
+        .rf-cluster-l1 {
+            background: rgba(248, 250, 252, 0.2);
+            border: 1px dashed rgba(139, 92, 246, 0.26);
+            border-radius: 14px;
+            inset: 0;
+            position: absolute;
+            transform: translate(7px, 7px);
+        }
+
+        .rf-cluster-l2 {
+            background: rgba(248, 250, 252, 0.3);
+            border: 1px dashed rgba(139, 92, 246, 0.38);
+            border-radius: 14px;
+            inset: 0;
+            position: absolute;
+            transform: translate(3px, 3px);
+        }
+
+        .rf-cluster-main {
+            background: #fff;
+            border: 1px dashed rgba(139, 92, 246, 0.55);
+            border-radius: 14px;
+            box-shadow: var(--shadow);
+            padding: 13px 16px;
+            position: relative;
+        }
+
+        .rf-cluster-badge {
+            align-items: center;
+            background: rgba(139, 92, 246, 0.09);
+            border: 1px solid rgba(139, 92, 246, 0.35);
+            border-radius: 999px;
+            color: var(--brand-600);
+            display: inline-flex;
+            font-size: 11px;
+            font-weight: 600;
+            gap: 6px;
+            padding: 4px 10px 4px 7px;
+        }
+
+        .rf-cluster-tags {
+            color: var(--text-muted);
+            display: grid;
+            font-size: 9px;
+            font-weight: 600;
+            gap: 6px;
+            grid-template-columns: repeat(3, 1fr);
+            margin-top: 9px;
+            text-align: center;
+        }
+
+        .rf-cluster-grid {
+            display: grid;
+            gap: 6px;
+            grid-template-columns: repeat(3, 1fr);
+            margin-top: 5px;
+        }
+
+        .rf-cluster-card {
+            align-items: center;
+            background: rgba(248, 250, 252, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            justify-content: center;
+            padding: 9px;
+            text-align: center;
+        }
+
+        .rf-cluster-core {
+            background: rgba(139, 92, 246, 0.07);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .rf-cluster-new {
+            background: rgba(16, 185, 129, 0.07);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .rf-cluster-icon {
+            align-items: center;
+            border-radius: 7px;
+            display: inline-flex;
+            height: 32px;
+            justify-content: center;
+            width: 32px;
+        }
+
+        .rf-cluster-icon svg {
+            height: 17px;
+            width: 17px;
+        }
+
+        .rf-cluster-core .rf-cluster-icon {
+            background: rgba(139, 92, 246, 0.12);
+            border: 1px solid rgba(139, 92, 246, 0.28);
+            color: var(--brand-600);
+        }
+
+        .rf-cluster-new .rf-cluster-icon {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.28);
+            color: var(--green-600);
+        }
+
+        .rf-cluster-mid .rf-cluster-icon {
+            background: rgba(148, 163, 184, 0.11);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            color: #475569;
+        }
+
+        .rf-cluster-label {
+            color: var(--text);
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .rf-cluster-mid-col {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .rf-cluster-mid {
+            align-items: center;
+            background: rgba(248, 250, 252, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            justify-content: center;
+            padding: 7px 9px;
+            text-align: center;
+        }
+
+        .rf-cluster-mid-icon {
+            color: #64748b;
+            display: inline-flex;
+            line-height: 0;
+        }
+
+        .rf-cluster-mid-icon svg {
+            height: 14px;
+            width: 14px;
+        }
+
+        .rf-cluster-mid .rf-cluster-label {
+            font-size: 9.5px;
+        }
+
+        /* counter/nav */
+        .slide-counter {
+            position: fixed;
+            top: 1.1rem;
+            right: 1.5rem;
+            z-index: 100;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 4px 10px;
+            backdrop-filter: blur(8px);
+        }
+
+        .slide-nav {
+            position: fixed;
+            bottom: 1.4rem;
+            right: 1.5rem;
+            z-index: 100;
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .nav-btn {
+            appearance: none;
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 999px;
+            color: var(--brand-600);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0.45rem 1rem;
+            transition: background 0.15s;
+            backdrop-filter: blur(8px);
+        }
+
+        .nav-btn:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .slide-hint {
+            position: fixed;
+            bottom: 1.45rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #94a3b8;
+            font-size: 0.72rem;
+            z-index: 100;
+        }
+
+        /* Vertically centered slides */
+        .slide-centered {
+            justify-content: center;
+        }
+
+        .slide-centered .slide-content {
+            flex: none;
+            overflow: visible;
+        }
+
+        .slide-centered .g2,
+        .slide-centered .g3,
+        .slide-centered .g4 {
+            height: auto;
+        }
+
+        .slide-centered .vert {
+            height: auto;
+        }
+
+
+        /* small helpers */
+        .mt1 {
+            margin-top: 0.7rem;
+        }
+
+        .mt2 {
+            margin-top: 1.2rem;
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.55;
+        }
+
+        .text-sm {
+            font-size: 0.9rem;
+        }
+
+        .vert {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            height: 100%;
+        }
+
+        .disc-box {
+            background: rgba(139, 92, 246, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 0.75rem;
+            padding: 0.9rem 1.1rem;
+        }
+
+        .disc-box h3 {
+            color: var(--brand-600);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+
+        .disc-box p {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="deck">
+
+        <!-- Slide counter & nav -->
+        <div class="slide-counter">
+            <span id="cur">1</span>&thinsp;/&thinsp;<span id="tot"></span>
+        </div>
+        <div class="slide-nav">
+            <button class="nav-btn" id="prev" disabled>← Prev</button>
+            <button class="nav-btn" id="next">Next →</button>
+        </div>
+        <div class="slide-hint">arrow keys · space · click</div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 1: Title                          -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-title-screen active" id="s1">
+            <h1>Massively Multiplayer<br /><span class="title-gradient">Real-time Architecture</span></h1>
+            <p class="title-sub">A case study: MQTT at 1M+ concurrent connections in a social massively multiplayer
+                online game</p>
+            <div class="title-meta">
+                <span class="title-dot"></span>
+                MQTT Beyond Meetup · 2026
+            </div>
+            <p class="text-sm" style="color:var(--text-muted);margin-top:1.2rem">Architecture generalized from a real
+                production deployment.</p>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 2: The Setup                      -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s2">
+            <span class="slide-tag">Context</span>
+            <h2>A social massively multiplayer online game</h2>
+            <div class="slide-content">
+                <div class="stat-grid" style="margin-bottom:1.3rem">
+                    <div class="stat-card">
+                        <div class="stat-num"
+                            style="background:linear-gradient(135deg,#8b5cf6,#6366f1);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">
+                            1M+</div>
+                        <div class="stat-lbl">Concurrent players</div>
+                        <div class="stat-sub">sustained peak</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-num"
+                            style="background:linear-gradient(135deg,#60a5fa,#6366f1);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">
+                            1M+</div>
+                        <div class="stat-lbl">Messages / second</div>
+                        <div class="stat-sub">~100 bytes · ingest only</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-num"
+                            style="background:linear-gradient(135deg,#10b981,#60a5fa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">
+                            3</div>
+                        <div class="stat-lbl">Regions</div>
+                        <div class="stat-sub">NA · EU · APAC</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-num"
+                            style="background:linear-gradient(135deg,#f59e0b,#10b981);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">
+                            ~70%</div>
+                        <div class="stat-lbl">Mobile clients</div>
+                        <div class="stat-sub">iOS + Android</div>
+                    </div>
+                </div>
+                <p class="text-muted">A cooperative, non-competitive game — players share the same world, rooms are
+                    bounded spaces where all occupants can see each other. No hit registration, no per-player visibility
+                    filtering, no anti-cheat constraints on message routing. The room boundary is the fan-out boundary.
+                    With ~200 players per room, broker egress is orders of magnitude higher than ingest.
+                </p>
+                <p class="text-muted" style="margin-top:0.6rem">Originally HTTP-based. Latency spikes under load, mobile
+                    clients dropping connections on any network transition, and fan-out complexity growing with every
+                    new player in a room. This talk walks through the architecture that replaced it.</p>
+                <p class="text-muted" style="margin-top:0.6rem"><strong>Scope:</strong> This architecture fits a specific class of game — cooperative, social, non-competitive.
+                    Competitive games with authoritative physics or anti-cheat requirements would position the broker differently (or bypass it for the hot loop entirely).</p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 3: Full Architecture diagram      -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide" id="s3">
+            <span class="slide-tag">Architecture</span>
+            <h2>The full pipeline</h2>
+            <div class="slide-content">
+                <div class="rf-wrap">
+                    <div
+                        style="position:absolute;top:8px;left:10px;z-index:10;background:rgba(255,255,255,0.82);border:1px solid rgba(139,92,246,0.2);border-radius:999px;font-size:0.72rem;font-weight:500;color:var(--text-muted);padding:4px 10px;display:flex;align-items:center;gap:6px;backdrop-filter:blur(4px)">
+                        <span style="background:#22c55e;border-radius:999px;height:6px;width:6px;flex-shrink:0"></span>
+                        player event → topic-routed → fan-out
+                    </div>
+                    <div
+                        style="position:absolute;top:30px;left:10px;z-index:10;background:rgba(255,255,255,0.75);border-radius:6px;font-size:0.62rem;font-weight:500;color:#64748b;padding:3px 9px;backdrop-filter:blur(4px);font-family:'Geist Mono',monospace">
+                        game/room/{id}/#
+                    </div>
+                    <button id="rf-reset"
+                        style="position:absolute;top:8px;right:10px;z-index:10;appearance:none;background:rgba(255,255,255,0.8);border:1px solid rgba(139,92,246,0.24);border-radius:999px;color:var(--brand-600);cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;padding:5px 9px">Reset
+                        layout</button>
+                    <div id="rf-root" class="rf-shell"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 4: Edge layer                     -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s4">
+            <span class="slide-tag">Layer 1</span>
+            <h2>Regional edge brokers</h2>
+            <div class="slide-content">
+                <div class="vert">
+                    <div class="g3" style="height:auto">
+                        <div class="card">
+                            <h3>NA cluster</h3>
+                            <p>Players in North America connect to the nearest EMQX edge node. Round-trip from New York to
+                                the NA edge: ~8ms. To a central EU cluster: ~90ms.</p>
+                        </div>
+                        <div class="card">
+                            <h3>EU cluster</h3>
+                            <p>Same pattern for Europe. Each regional cluster accepts MQTT connections and bridges to the
+                                central cluster over an MQTT bridge connection.</p>
+                        </div>
+                        <div class="card">
+                            <h3>APAC cluster</h3>
+                            <p>Tokyo, Singapore, Sydney. Mobile-heavy market. Regional edges give mobile players a fast,
+                                localized connection point.</p>
+                        </div>
+                    </div>
+                    <div class="card" style="flex:0 0 auto">
+                        <h3>Star topology &amp; cross-region rooms</h3>
+                        <p><strong>Star topology:</strong> Regional edge clusters bridge to a central cluster via stable datacenter-grade MQTT bridge connections — not client-grade links.
+                            Inter-cluster bridging is a persistent, high-throughput server-to-server channel with its own reconnect and buffering logic.</p>
+                        <p><strong>Cross-region rooms:</strong> When players from different regions join the same room, the authoritative broker for that room is the central cluster.
+                            Edge brokers relay messages to/from their local players — adding one regional hop but keeping the fan-out centralized and consistent.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 5: HTTP vs MQTT                   -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s5">
+            <span class="slide-tag">Why not raw WebSockets</span>
+            <h2>The protocol mismatch</h2>
+            <div class="slide-content">
+                <div class="g2">
+                    <div class="card card-bad">
+                        <h3 class="bad">WebSockets · SSE</h3>
+                        <ul class="bullets">
+                            <li><strong>A raw pipe — nothing more.</strong> WebSocket gives you a bidirectional byte
+                                stream. Player location broadcast, interest management (AoI), reliable events vs
+                                unreliable updates, reconnect state synchronization: none of that exists
+                                in the protocol. It is all your application code.</li>
+                            <li><strong>Point-to-point fan-out.</strong> 1,000 subscribers means your server calls
+                                send() 1,000 times. The protocol has no concept of publish-once-deliver-many.</li>
+
+                            <li><strong>SSE is one-directional</strong> — server push only. Client responses require a
+                                separate HTTP channel.</li>
+                        </ul>
+                    </div>
+                    <div class="card card-good">
+                        <h3 class="good">MQTT</h3>
+                        <ul class="bullets">
+                            <li><strong>Pub/sub is the protocol.</strong> Publishers and subscribers are decoupled by
+                                design. The broker handles topic routing, fan-out, and delivery — not your server.</li>
+                            <li><strong>Broker fan-out.</strong> Publish once; broker delivers to every subscriber. Your
+                                game server sends one message regardless of how many clients are in the room.</li>
+                            <li><strong>QoS 0 / 1 / 2</strong> — delivery guarantees are a protocol primitive, not
+                                application code.</li>
+                            <li><strong>Keep-Alive heartbeat</strong> — broker detects silent disconnects; mobile radio
+                                can sleep between heartbeats.</li>
+                            <li><strong>Session persistence</strong> — the broker remembers the client's session state
+                                across
+                                network transitions, avoiding full application-level reconnects if the socket drops.
+                            </li>
+
+                        </ul>
+                    </div>
+                </div>
+                <p class="text-muted" style="margin-top:0.8rem;font-size:0.82rem"><strong>Caveat:</strong> Real production WebSocket architectures use edge proxies (Envoy, HAProxy) that handle TLS, keepalives, and connection pooling — not raw sockets.
+                    The more honest comparison is MQTT broker vs. edge-proxy-plus-custom-pub/sub-layer. Slide 7 addresses that trade-off directly.</p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 6: Observability                  -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s6">
+            <span class="slide-tag">Operations</span>
+            <h2>Observable by design</h2>
+            <div class="slide-content">
+                <div class="g2">
+                    <div class="card card-bad">
+                        <h3 class="bad">HTTP · WebSockets · SSE</h3>
+                        <ul class="bullets">
+                            <li><strong>Standard monitoring still applies.</strong> Teams build Grafana/Datadog dashboards regardless of transport.
+                                The question is what <em>additional</em> live inspection capability you get from the transport layer itself.</li>
+                            <li><strong>Player-specific investigation:</strong> filter logs by <code>session_id</code>
+                                or <code>player_id</code>. Works, but requires a logging stack (ELK, Splunk, Datadog)
+                                and you're still reading text, not watching live traffic.</li>
+                            <li><strong>Network-level sniffing</strong> (tcpdump, Wireshark) gives full packet
+                                visibility but is cumbersome to set up on production hosts and rarely done in practice.
+                            </li>
+                            <li><strong>A proxy</strong> (mitmproxy, sidecar) can intercept traffic in real time but is
+                                seldom deployed just for debugging — it is extra infrastructure that sits in the request
+                                path permanently.</li>
+                        </ul>
+                    </div>
+                    <div class="card card-good">
+                        <h3 class="good">MQTT — a network X-ray</h3>
+                        <ul class="bullets">
+                            <li><strong>The broker sees the network, not the game.</strong> Application-level bugs still
+                                need your own tooling. What the broker gives you is visibility into the
+                                <strong>transport layer</strong>: did the client drop the connection, or did the server
+                                stop sending? An edge proxy gives this for TCP; the broker gives this <em>per
+                                    topic</em>.
+                            </li>
+                            <li><strong>Delivery health is built in.</strong> Disconnect Reason Codes, LWT (Last Will),
+                                and QoS unacknowledged message queues tell you exactly where the pipeline broke —
+                                without touching game server logs or C++ engine code.</li>
+                            <li><strong>Live topic inspection</strong> for scoped investigation:
+                                <pre
+                                    style="margin-top:0.5rem;font-size:0.72rem;background:rgba(0,0,0,0.04);border-radius:0.4rem;padding:0.5rem 0.7rem;font-family:'Geist Mono',monospace;color:var(--text-muted)">SUBSCRIBE game/room/42/#</pre>
+                                Watch one room's traffic in real time — no code changes, no redeployment, invisible to
+                                players.
+                            </li>
+                            <li><strong>Built-in packet tracing.</strong> The broker natively provides packet tracing,
+                                allowing you to easily inspect payload data live in a non-disruptive way. You do not
+                                need a separate application or proxy to inspect traffic.</li>
+                            <li><strong>Scale caveat:</strong> At high message rates, you scope your debug subscription narrowly
+                                (<code>game/room/42/player/17/#</code>) or sample. This is targeted investigation, not
+                                "subscribe to everything and read it all."</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 7: Trade-offs                     -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s7">
+            <span class="slide-tag">Honest engineering</span>
+            <h2>Trade-offs: latency vs. connection offloading</h2>
+            <div class="slide-content">
+                <div class="g2">
+                    <div class="card card-bad">
+                        <h3 class="bad">The cost you pay</h3>
+                        <ul class="bullets">
+                            <li><strong>Latency and Jitter.</strong> <code
+                                    style="font-family:monospace;font-size:.85em;background:rgba(0,0,0,.05);padding:1px 4px;border-radius:3px">Client → Broker → Room Server</code>.
+                                This adds ~10–20 ms of unloaded latency. However, during flash crowds (e.g., 1,000
+                                players spawning at once), broker topic-matching and fan-out routines can cause
+                                unpredictable latency jitter, breaking movement prediction.</li>
+                            <li><strong>A heavier edge component.</strong> Compared to a lightweight, finely-tuned edge
+                                proxy like Envoy or a custom UDP gateway, an Erlang/OTP distributed broker is massive
+                                and complex to operate, monitor, and tune.</li>
+                            <li><strong>Binary payloads are opaque to the broker.</strong> The broker routes bytes; it
+                                cannot inspect or validate game-specific serialization. That logic stays in your server.
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card card-good">
+                        <h3 class="good">What you get in return</h3>
+                        <ul class="bullets">
+                            <li><strong>Unified edge layer.</strong> Proper game architectures already use edge proxies
+                                to handle socket I/O, TLS, and keepalives. The broker replaces those edge pipes with
+                                a single layer that handles <em>both</em> transport connectivity and robust pub/sub
+                                routing at
+                                massive scale.</li>
+                            <li><strong>Offloading the fan-out loop.</strong> Even with an edge proxy, a typical game
+                                server must iterate over memory structures to fan out messages to specific client
+                                connections. With a broker, the game loop publishes exactly <em>once</em> per tick.
+                                The broker duplicates the payloads to all topic subscribers.</li>
+                            <li><strong>Operational leverage.</strong> QoS, state synchronization, and data export —
+                                each is a feature you'd otherwise build, test, and maintain as custom control-plane
+                                logic behind your proxies.</li>
+                            <li><strong>Battle-tested infrastructure.</strong> EMQX is deployed at scale in IoT, automotive, and telecom —
+                                but this workload profile (high-frequency, low-latency game events) is a different beast. What makes it viable here is
+                                EMQX's Erlang/OTP foundation: lightweight processes, preemptive scheduling, and soft-realtime GC
+                                designed for exactly this class of concurrent messaging.</li>
+                            <li><strong>Resilient state recovery.</strong> The broker shields the backend from
+                                connection chaos and TLS thundering herds, while Retained Messages provide instant
+                                secondary state to reconnecting clients without separate REST APIs.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8 Removed and compacted into Slide 7 -->
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 8: EMQX Protocol Extensions       -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s8">
+            <span class="slide-tag">Beyond pub/sub</span>
+            <h2>EMQX Protocol Extensions</h2>
+            <div class="slide-content">
+                <div class="g2">
+                    <div class="vert">
+                        <div class="card card-new" style="flex:0 0 auto">
+                            <h3 class="new-feat">MQTT Streams</h3>
+                            <p>Persistent, append-only log attached to a topic. Any subscriber can start reading from
+                                any offset — 200 clients, 200 independent cursors, one stored history.</p>
+                            <pre class="code">SUBSCRIBE <span class="hi">$stream/positions/game/{room_id}/#</span>
+  <span class="cm">[MQTT Property]</span> <span class="kw">stream-offset</span>: <span class="st">{last_ts}</span>
+<span class="cm"># Replay in-order → transition to live feed</span></pre>
+                            <p style="margin-top:.5rem">Partitioned by key expression (e.g., <code
+                                    style="font-family:monospace;font-size:.88em">room_id</code>) with strict
+                                per-partition ordering — the core Kafka pattern, inside the broker. For many workloads
+                                this replaces a dedicated Kafka cluster. Maintaining Kafka is a non-trivial operational
+                                burden, and managed Kafka is expensive. When you do need a full data lake, EMQX bridges
+                                natively to Kafka, Snowflake, or ClickHouse.</p>
+                        </div>
+                    </div>
+                    <div class="vert">
+                        <div class="card card-new" style="flex:0 0 auto">
+                            <h3 class="new-feat">Message Queue</h3>
+                            <pre class="code"><span class="cm"># Held if player is offline</span>
+PUBLISH <span class="hi">$queue/player-commands/player/{id}/commands</span>
+  <span class="st">{"type":"teleport","dest":"zone_7"}</span>
+<span class="cm"># Delivered QoS 1 when client reconnects</span></pre>
+                            <p style="margin-top:.5rem"><strong>Offline delivery</strong> — messages are persisted
+                                even when the target client is disconnected. Commands, notifications, or config updates
+                                are held in the queue and delivered reliably (QoS 1) when the client reconnects.</p>
+                            <p style="margin-top:.5rem"><strong>Last-Value semantics</strong> — with a queue key
+                                expression, only the latest message per key is retained. Ideal for dispatching the most
+                                recent configuration, cosmetic loadout, or announcement without stacking stale updates.
+                                <em>This is a different mechanism from standard MQTT Retained Messages</em> — Retained Messages deliver one message per topic to new subscribers (latest state);
+                                Message Queue Last-Value is per-key dedup in a persistent queue with offline delivery.
+                            </p>
+                            <p style="margin-top:.5rem"><strong>Dispatch strategies</strong> — distribute queued
+                                messages
+                                across multiple consumers via round-robin, random, or least-inflight routing. Useful for
+                                parallelizing command processing or batch work across a pool of workers.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 9: MQTT beyond gaming             -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s9">
+            <span class="slide-tag">Discussion</span>
+            <h2>Where else do these patterns apply?</h2>
+            <div class="slide-content">
+                <div class="disc-box" style="margin-bottom:1rem">
+                    <h3>Question</h3>
+                    <p>Where in your stack do you have more than a few hundred clients waiting for the same update? Are
+                        you polling somewhere today that could be a subscription?</p>
+                </div>
+                <div class="g4">
+                    <div class="card">
+                        <h3>Financial market data</h3>
+                        <p>Tick data fan-out to thousands of subscribers from a single publish. Shared subscriptions
+                            distribute order-processing across execution engines. Retained Messages gives a late
+                            subscriber the current price without a bootstrap REST call.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Collaborative editing</h3>
+                        <p>Cursor positions, shape mutations, presence across concurrent editors. The batch-write
+                            pattern applies: accumulate cursor-move events, broadcast at display cadence. Not every
+                            intermediate cursor position needs to reach every collaborator.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Sports betting / live events</h3>
+                        <p>Odds change every few seconds. All subscribers need the latest number simultaneously. One
+                            publish to all, sub-second. Retained Messages: a newly opened app sees
+                            current odds immediately, no separate price API call.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Messaging &amp; social</h3>
+                        <p>"Is typing…", presence, read receipts. For offline delivery, EMQX's Message Queue (not Retained Messages)
+                            holds missed messages and delivers them QoS 1 when the client reconnects — no FCM workarounds or separate
+                            queue store. Retained Messages gives the <em>latest state</em> per topic (e.g., current status), not full message history.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 10: Key points                    -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s10">
+            <span class="slide-tag">Summary</span>
+            <h2>Three things to take away</h2>
+            <div class="slide-content">
+                <div class="g3">
+                    <div class="card">
+                        <h3>Decouple transport from simulation</h3>
+                        <ul class="bullets">
+                            <li>The broker absorbs 1M+ flaky mobile connections — TLS termination, keepalives, reconnect
+                                storms — so the game server never touches raw socket I/O</li>
+                            <li>Your game logic processes validated inputs. Fan-out, QoS, session persistence, and
+                                shared consumers are the broker's job</li>
+                            <li>The trade-off is ~10–20 ms of datacenter latency. For a cooperative social game, that
+                                buys enormous operational leverage</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Simplifying the backend</h3>
+                        <ul class="bullets">
+                            <li>The broker shields the game server from connection chaos. An edge proxy can hold TCP
+                                connections during a backend crash, but the broker holds both the connections
+                                <em>and</em> the pub/sub routing state, allowing instant topology recovery.
+                            </li>
+                            <li>MQTT Streams can replace a dedicated Kafka cluster for many game event workloads — one
+                                fewer system to operate and pay for</li>
+                            <li>Retained Messages handle secondary state (cosmetics, flags, room weather) on reconnect —
+                                the game server doesn't package it</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Resilience by design</h3>
+                        <ul class="bullets">
+                            <li><strong>Broker node failure:</strong> EMQX's clustered architecture means sessions migrate to surviving nodes.
+                                Clients reconnect to another node in the cluster and resume their subscriptions — no application-level orchestration required.</li>
+                            <li><strong>Backend crash:</strong> The broker holds client connections while game servers restart.
+                                Players stay connected; the new server instance subscribes and picks up where the old one left off.</li>
+                            <li><strong>Network transitions:</strong> Session persistence across IP changes — mobile clients switching
+                                between WiFi and cellular resume without full re-authentication or state resync.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 11: Q&A                           -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s11">
+            <span class="slide-tag">Q&amp;A</span>
+            <h2>Open discussion</h2>
+            <div class="slide-content">
+                <div class="vert">
+                    <div class="disc-box">
+                        <h3>1</h3>
+                        <p>If your game needs authoritative physics or sub-10ms latency for the hot loop, where does a
+                            message broker fit? Can it coexist with a direct UDP path for position updates while handling
+                            the rest (chat, inventory, matchmaking, events) over MQTT?</p>
+                    </div>
+                    <div class="disc-box">
+                        <h3>2</h3>
+                        <p>What's your current reconnect strategy — and how long does it take a mobile client to get
+                            back to a "live" state after a network transition?</p>
+                    </div>
+                    <div class="disc-box">
+                        <h3>3</h3>
+                        <p>If you already run an edge proxy (Envoy, HAProxy, etc.), what is it doing beyond TCP load
+                            balancing — and what would change if it also understood pub/sub routing?</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /deck -->
+
+    <script>
+        if (window.lucide) lucide.createIcons();
+    </script>
+
+    <!-- Slide controller -->
+    <script>
+        (function () {
+            const slides = Array.from(document.querySelectorAll('.slide'));
+            const curEl = document.getElementById('cur');
+            const totEl = document.getElementById('tot');
+            const prevBtn = document.getElementById('prev');
+            const nextBtn = document.getElementById('next');
+            let cur = 0;
+
+            totEl.textContent = slides.length;
+
+            function goto(n) {
+                slides[cur].classList.remove('active');
+                cur = Math.max(0, Math.min(slides.length - 1, n));
+                slides[cur].classList.add('active');
+                curEl.textContent = cur + 1;
+                prevBtn.disabled = cur === 0;
+                nextBtn.disabled = cur === slides.length - 1;
+            }
+
+            prevBtn.addEventListener('click', () => goto(cur - 1));
+            nextBtn.addEventListener('click', () => goto(cur + 1));
+
+            document.addEventListener('keydown', function (e) {
+                // Don't steal keys if focus is inside the diagram (React Flow)
+                if (e.target.closest && e.target.closest('#rf-root')) return;
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goto(cur + 1); }
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goto(cur - 1); }
+            });
+        })();
+    </script>
+
+    <!-- React Flow diagram (slide 4) -->
+    <script>
+        (async function () {
+            const failedCdns = [];
+            function loadScript(src) {
+                return new Promise((resolve, reject) => {
+                    if (document.querySelector('script[data-cdn="' + src + '"]')) { resolve(); return; }
+                    const s = document.createElement('script');
+                    s.src = src; s.async = false; s.dataset.cdn = src;
+                    s.onload = resolve; s.onerror = () => reject(new Error(src));
+                    document.head.appendChild(s);
+                });
+            }
+            async function need(check, sources) {
+                if (check()) return true;
+                for (const src of sources) {
+                    try { await loadScript(src); } catch { failedCdns.push(src); }
+                    if (check()) return true;
+                }
+                return check();
+            }
+            function shimJsx() {
+                if (window.jsxRuntime) return true;
+                if (window.ReactJSXRuntime) { window.jsxRuntime = window.ReactJSXRuntime; return true; }
+                if (!window.React || typeof window.React.createElement !== 'function') return false;
+                window.jsxRuntime = {
+                    Fragment: window.React.Fragment,
+                    jsx(t, p, k) { return window.React.createElement(t, { ...(p || {}), k }); },
+                    jsxs(t, p, k) { return window.React.createElement(t, { ...(p || {}), k }); },
+                };
+                return true;
+            }
+
+            const rOk = await need(() => !!window.React, ['https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js', 'https://unpkg.com/react@18.2.0/umd/react.production.min.js']);
+            const rdOk = await need(() => !!window.ReactDOM && typeof window.ReactDOM.createRoot === 'function', ['https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js', 'https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js']);
+            if (rOk && window.React && !window.react) window.react = window.React;
+            const lOk = await need(() => !!window.LucideReact, ['https://cdn.jsdelivr.net/npm/lucide-react@0.555.0/dist/umd/lucide-react.min.js', 'https://unpkg.com/lucide-react@0.555.0/dist/umd/lucide-react.min.js']);
+            const jOk = shimJsx();
+            const xOk = await need(() => !!window.ReactFlow, ['https://cdn.jsdelivr.net/npm/@xyflow/react@12.8.5/dist/umd/index.js', 'https://unpkg.com/@xyflow/react@12.8.5/dist/umd/index.js']);
+
+            const React = window.React, ReactDOM = window.ReactDOM, XYFlow = window.ReactFlow, L = window.LucideReact;
+            const { ReactFlow: RF, Background, BackgroundVariant, Controls, Handle, BaseEdge, getBezierPath, applyNodeChanges, Position } = XYFlow || {};
+            const root = document.getElementById('rf-root');
+            const resetBtn = document.getElementById('rf-reset');
+
+            if (!root) return;
+            if (!React || !ReactDOM || !XYFlow || !L || !RF || !Background || !Controls || !Handle || !BaseEdge || !getBezierPath || !applyNodeChanges || !Position || !rOk || !rdOk || !xOk || !lOk || !jOk) {
+                root.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:12px;text-align:center">React Flow CDN unavailable.<br>Check console.</div>';
+                console.error('[RF]', { failedCdns });
+                return;
+            }
+
+            const STORE = 'mqtt-gaming-layout-v2';
+            const IMAP = { users: 'Users', network: 'Network', shield: 'ShieldCheck', gamepad: 'Gamepad2', layers: 'Layers', radio: 'Radio', server: 'Server', share: 'Share2', rewind: 'Rewind', fileCode: 'FileCode2', zap: 'Zap', database: 'Database', warehouse: 'Warehouse' };
+            const ic = (k, sz = 14) => React.createElement(L[IMAP[k] || 'Circle'], { size: sz, strokeWidth: 1.85, absoluteStrokeWidth: true });
+
+            function GEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, data }) {
+                const [path] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
+                const gid = 'eg' + id;
+                const rev = !!(data && data.rev);
+                const sw = (style && style.strokeWidth) || 1.4;
+                return React.createElement(React.Fragment, null, [
+                    React.createElement('defs', { key: 'd' }, React.createElement('linearGradient', { id: gid, gradientUnits: 'userSpaceOnUse', x1: rev ? targetX : sourceX, y1: rev ? targetY : sourceY, x2: rev ? sourceX : targetX, y2: rev ? sourceY : targetY }, [
+                        React.createElement('stop', { key: 's1', offset: '0%', stopColor: 'var(--brand-500)', stopOpacity: 0.6 }),
+                        React.createElement('stop', { key: 's2', offset: '60%', stopColor: 'var(--brand-400)', stopOpacity: 0.7 }),
+                        React.createElement('stop', { key: 's3', offset: '100%', stopColor: 'var(--accent-400)', stopOpacity: 0.9 }),
+                    ])),
+                    React.createElement('path', { key: 'gl', d: path, fill: 'none', stroke: 'url(#' + gid + ')', strokeWidth: sw + 0.6, strokeOpacity: 0.22, strokeLinecap: 'round' }),
+                    React.createElement(BaseEdge, { key: 'e', path, markerEnd, style: { ...style, stroke: 'url(#' + gid + ')' } }),
+                ]);
+            }
+
+            function DNode({ data }) {
+                const w = data.w ? { width: data.w + 'px', minWidth: data.w + 'px' } : {};
+                return React.createElement('div', { className: 'rf-device-card', style: { border: '1px solid ' + data.soft, ...w } }, [
+                    React.createElement(Handle, { key: 't', type: 'target', id: 'tgt-left', position: Position.Left, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement(Handle, { key: 'tr', type: 'target', id: 'tgt-right', position: Position.Right, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement(Handle, { key: 'tt', type: 'target', id: 'tgt-top', position: Position.Top, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement(Handle, { key: 'tb', type: 'target', id: 'tgt-bottom', position: Position.Bottom, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement('div', { key: 'i', className: 'rf-icon', style: { background: data.bg, color: data.color } }, ic(data.icon, 14)),
+                    React.createElement('div', { key: 'tx', className: 'rf-text' }, [
+                        data.kicker && React.createElement('div', { key: 'k', className: 'rf-kicker' }, data.kicker),
+                        React.createElement('div', { key: 't', className: 'rf-title' }, data.label),
+                        React.createElement('div', { key: 's', className: 'rf-sub' }, data.sub),
+                    ]),
+                    React.createElement('span', { key: 'dot', className: 'rf-dot', style: { background: data.color } }),
+                    React.createElement(Handle, { key: 'src', type: 'source', position: Position.Right, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement(Handle, { key: 'sl', type: 'source', id: 'src-left', position: Position.Left, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement(Handle, { key: 'sb', type: 'source', id: 'src-bottom', position: Position.Bottom, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement(Handle, { key: 'st', type: 'source', id: 'src-top', position: Position.Top, className: 'rf-handle-hidden', isConnectable: false }),
+                ]);
+            }
+
+            function ONode({ data }) {
+                return React.createElement('div', { className: 'rf-output-card', style: { border: '1px solid ' + data.soft } }, [
+                    React.createElement(Handle, { key: 't', type: 'target', id: 'tgt-left', position: Position.Left, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement(Handle, { key: 'tt', type: 'target', id: 'tgt-top', position: Position.Top, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement(Handle, { key: 'tb', type: 'target', id: 'tgt-bottom', position: Position.Bottom, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement('div', { key: 'i', className: 'rf-icon', style: { background: data.bg, color: data.color } }, ic(data.icon, 14)),
+                    React.createElement('div', { key: 'tx', className: 'rf-text' }, [
+                        data.kicker && React.createElement('div', { key: 'k', className: 'rf-kicker' }, data.kicker),
+                        React.createElement('div', { key: 't', className: 'rf-title' }, data.label),
+                        React.createElement('div', { key: 's', className: 'rf-sub' }, data.sub),
+                    ]),
+                    React.createElement('span', { key: 'dot', className: 'rf-dot', style: { background: data.color } }),
+                    React.createElement(Handle, { key: 'srct', type: 'source', id: 'src-top', position: Position.Top, className: 'rf-handle-hidden', isConnectable: false }),
+                    React.createElement(Handle, { key: 'srcb', type: 'source', id: 'src-bottom', position: Position.Bottom, className: 'rf-handle-hidden', isConnectable: false }),
+                ]);
+            }
+
+            function ClusterNode() {
+                return React.createElement('div', { className: 'rf-cluster-wrap' }, [
+                    React.createElement('div', { key: 'l1', className: 'rf-cluster-l1' }),
+                    React.createElement('div', { key: 'l2', className: 'rf-cluster-l2' }),
+                    React.createElement('div', { key: 'm', className: 'rf-cluster-main' }, [
+                        React.createElement(Handle, { key: 'tgt', type: 'target', id: 'tgt-left', position: Position.Left, className: 'rf-handle-hidden', isConnectable: false }),
+                        React.createElement(Handle, { key: 'tgt-r', type: 'target', id: 'tgt-right', position: Position.Right, className: 'rf-handle-hidden', isConnectable: false }),
+                        React.createElement(Handle, { key: 'tgt-t', type: 'target', id: 'tgt-top', position: Position.Top, className: 'rf-handle-hidden', isConnectable: false }),
+                        React.createElement(Handle, { key: 'tgt-b', type: 'target', id: 'tgt-bottom', position: Position.Bottom, className: 'rf-handle-hidden', isConnectable: false }),
+                        React.createElement(Handle, { key: 'src', type: 'source', position: Position.Right, className: 'rf-handle-hidden', isConnectable: false }),
+                        React.createElement(Handle, { key: 'src-l', type: 'source', id: 'src-left', position: Position.Left, className: 'rf-handle-hidden', isConnectable: false }),
+                        React.createElement(Handle, { key: 'src-t', type: 'source', id: 'src-top', position: Position.Top, className: 'rf-handle-hidden', isConnectable: false }),
+                        React.createElement(Handle, { key: 'src-b', type: 'source', id: 'src-bottom', position: Position.Bottom, className: 'rf-handle-hidden', isConnectable: false }),
+                        React.createElement('div', { key: 'b', className: 'rf-cluster-badge' }, [React.createElement('span', { key: 'i' }, ic('server', 14)), 'EMQX Enterprise Cluster']),
+                        React.createElement('div', { key: 'tg', className: 'rf-cluster-tags' }, [
+                            React.createElement('span', { key: 't1' }, 'Connect'),
+                            React.createElement('span', { key: 't2' }, 'Route'),
+                            React.createElement('span', { key: 't3' }, 'Stream'),
+                        ]),
+                        React.createElement('div', { key: 'g', className: 'rf-cluster-grid' }, [
+                            React.createElement('div', { key: 'br', className: 'rf-cluster-card rf-cluster-core' }, [
+                                React.createElement('span', { key: 'i', className: 'rf-cluster-icon' }, ic('server', 17)),
+                                React.createElement('span', { key: 'l', className: 'rf-cluster-label' }, 'EMQX Broker'),
+                            ]),
+                            React.createElement('div', { key: 'mid', className: 'rf-cluster-mid-col' }, [
+                                React.createElement('div', { key: 'm1', className: 'rf-cluster-mid' }, [
+                                    React.createElement('span', { key: 'i', className: 'rf-cluster-mid-icon' }, ic('share', 13)),
+                                    React.createElement('span', { key: 'l', className: 'rf-cluster-label' }, 'Shared Subscriptions'),
+                                ]),
+                                React.createElement('div', { key: 'm2', className: 'rf-cluster-mid' }, [
+                                    React.createElement('span', { key: 'i', className: 'rf-cluster-mid-icon' }, ic('fileCode', 13)),
+                                    React.createElement('span', { key: 'l', className: 'rf-cluster-label' }, 'Rule Engine'),
+                                ]),
+                            ]),
+                            React.createElement('div', { key: 'st', className: 'rf-cluster-card rf-cluster-new' }, [
+                                React.createElement('span', { key: 'i', className: 'rf-cluster-icon' }, ic('rewind', 17)),
+                                React.createElement('span', { key: 'l', className: 'rf-cluster-label', style: { color: 'var(--green-600)' } }, 'MQTT Streams'),
+                                React.createElement('span', { key: 'n', style: { fontSize: '8px', background: 'rgba(16,185,129,0.15)', color: '#059669', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '999px', padding: '1px 5px', fontWeight: 700 } }, 'NEW'),
+                            ]),
+                        ]),
+                    ]),
+                ]);
+            }
+
+            const NS = { border: 'none', background: 'transparent', padding: 0 };
+            const PAL = {
+                purple: { color: '#8B5CF6', bg: 'rgba(139,92,246,0.11)', soft: 'rgba(139,92,246,0.22)' },
+                blue: { color: '#60A5FA', bg: 'rgba(96,165,250,0.11)', soft: 'rgba(96,165,250,0.22)' },
+                green: { color: '#10B981', bg: 'rgba(16,185,129,0.11)', soft: 'rgba(16,185,129,0.22)' },
+                amber: { color: '#F59E0B', bg: 'rgba(245,158,11,0.11)', soft: 'rgba(245,158,11,0.22)' },
+                pink: { color: '#EC4899', bg: 'rgba(236,72,153,0.11)', soft: 'rgba(236,72,153,0.22)' },
+            };
+
+            const fw = root.clientWidth || window.innerWidth || 0;
+            const L2 = fw >= 1400
+                ? { pX: 0, pY: 200, eX: 270, cX: 520, cY: 25, rX: 1020, dbX: 1280, pad: 0.10, mxZ: 0.88, mnZ: 0.22 }
+                : fw >= 1100
+                    ? { pX: 0, pY: 185, eX: 240, cX: 460, cY: 28, rX: 900, dbX: 1140, pad: 0.12, mxZ: 0.85, mnZ: 0.20 }
+                    : { pX: 0, pY: 170, eX: 210, cX: 400, cY: 32, rX: 780, dbX: 1000, pad: 0.16, mxZ: 0.80, mnZ: 0.18 };
+
+            const baseNodes = [
+                // Left: players
+                { id: 'players', type: 'device', position: { x: L2.pX, y: L2.pY }, data: { kicker: 'Game clients', label: '1M+ Concurrent Players', sub: 'Mobile · Console · Desktop', icon: 'users', w: 225, ...PAL.purple }, style: NS },
+                // 3 regional edge brokers
+                { id: 'edgeNA',   type: 'device', position: { x: L2.eX, y: 80 },  data: { kicker: 'Edge', label: 'NA Broker',   sub: 'North America', icon: 'network', w: 175, ...PAL.blue }, style: NS },
+                { id: 'edgeEU',   type: 'device', position: { x: L2.eX, y: 200 }, data: { kicker: 'Edge', label: 'EU Broker',   sub: 'Europe',        icon: 'network', w: 175, ...PAL.blue }, style: NS },
+                { id: 'edgeAPAC', type: 'device', position: { x: L2.eX, y: 320 }, data: { kicker: 'Edge', label: 'APAC Broker', sub: 'Asia-Pacific',  icon: 'network', w: 175, ...PAL.blue }, style: NS },
+                // Central EMQX cluster
+                { id: 'emqx', type: 'cluster', position: { x: L2.cX, y: L2.cY }, data: {}, style: NS },
+                // Right column: auth, game servers, aggregation
+                { id: 'auth',  type: 'device', position: { x: L2.rX, y: 20 },  data: { kicker: 'Identity', label: 'Auth Service', sub: 'Authentication · ACLs', icon: 'shield', w: 200, ...PAL.amber }, style: NS },
+                { id: 'gs1',   type: 'device', position: { x: L2.rX, y: 140 }, data: { kicker: 'Game logic', label: 'Game Server', sub: 'stateful simulation', icon: 'gamepad', w: 200, ...PAL.green }, style: NS },
+                { id: 'gs2',   type: 'device', position: { x: L2.rX, y: 225 }, data: { kicker: 'Game logic', label: 'Game Server', sub: 'stateful simulation', icon: 'gamepad', w: 200, ...PAL.green }, style: NS },
+                { id: 'gs3',   type: 'device', position: { x: L2.rX, y: 310 }, data: { kicker: 'Game logic', label: 'Game Server', sub: 'stateful simulation', icon: 'gamepad', w: 200, ...PAL.green }, style: NS },
+                { id: 'aggEvt', type: 'device', position: { x: L2.rX, y: 410 }, data: { kicker: 'Event pipeline', label: 'Event Aggregation', sub: 'condense · publish back', icon: 'layers', w: 200, ...PAL.pink }, style: NS },
+                { id: 'aggDb',  type: 'device', position: { x: L2.rX + 250, y: 410 }, data: { kicker: 'Data pipeline', label: 'Persistence Workers', sub: 'store · index · replay', icon: 'layers', w: 200, ...PAL.pink }, style: NS },
+                // Far right: storage
+                { id: 'authdb',   type: 'output', position: { x: L2.dbX, y: 20 },  data: { kicker: 'Storage', label: 'MongoDB', sub: 'accounts', icon: 'database', ...PAL.amber }, style: NS },
+                { id: 'datalake', type: 'output', position: { x: L2.dbX + 250, y: 410 }, data: { kicker: 'Analytics', label: 'Data Store', sub: 'events · metrics · replays', icon: 'warehouse', ...PAL.pink }, style: NS },
+            ];
+
+            const ES = { strokeWidth: 1.4, strokeOpacity: 0.65, strokeLinecap: 'round' };
+            const ESdim = { ...ES, strokeOpacity: 0.35 };
+            const lbl = (text) => ({ label: text, labelStyle: { fontSize: 9, fontWeight: 600, fill: '#64748b' } });
+            const edges = [
+                // Players → 3 edge brokers
+                { id: 'ep1', source: 'players', target: 'edgeNA',   animated: true, style: ES, targetHandle: 'tgt-left' },
+                { id: 'ep2', source: 'players', target: 'edgeEU',   animated: true, style: ES, targetHandle: 'tgt-left' },
+                { id: 'ep3', source: 'players', target: 'edgeAPAC', animated: true, style: ES, targetHandle: 'tgt-left' },
+                // Edge brokers → EMQX cluster
+                { id: 'ee1', source: 'edgeNA',   target: 'emqx', animated: true, style: ES, type: 'smoothstep' },
+                { id: 'ee2', source: 'edgeEU',   target: 'emqx', animated: true, style: ES, type: 'smoothstep' },
+                { id: 'ee3', source: 'edgeAPAC', target: 'emqx', animated: true, style: ES, type: 'smoothstep' },
+                // EMQX → Auth (dim, not on hot path)
+                { id: 'ea', source: 'emqx', target: 'auth', animated: false, style: ESdim },
+                // Auth → MongoDB
+                { id: 'adb', source: 'auth', target: 'authdb', animated: false, style: ESdim },
+                // EMQX → 3 Game Servers (ingest)
+                { id: 'eg1', source: 'emqx', target: 'gs1', animated: true, style: ES, type: 'smoothstep' },
+                { id: 'eg2', source: 'emqx', target: 'gs2', animated: true, style: ES, type: 'smoothstep' },
+                { id: 'eg3', source: 'emqx', target: 'gs3', animated: true, style: ES, type: 'smoothstep' },
+                // Game Servers → EMQX (state broadcast back)
+                { id: 'gs1b', source: 'gs1', target: 'emqx', animated: true, style: ES, data: { rev: true }, sourceHandle: 'src-left', targetHandle: 'tgt-right', type: 'smoothstep' },
+                { id: 'gs2b', source: 'gs2', target: 'emqx', animated: true, style: ES, data: { rev: true }, sourceHandle: 'src-left', targetHandle: 'tgt-right', type: 'smoothstep' },
+                { id: 'gs3b', source: 'gs3', target: 'emqx', animated: true, style: ES, data: { rev: true }, sourceHandle: 'src-left', targetHandle: 'tgt-bottom', type: 'smoothstep' },
+                // EMQX → Event Aggregation ($share)
+                { id: 'eae', source: 'emqx', target: 'aggEvt', animated: true, style: ES, sourceHandle: 'src-bottom', targetHandle: 'tgt-left', type: 'smoothstep', ...lbl('$share subscription') },
+                // Event Agg → EMQX (condensed messages published back)
+                { id: 'aee', source: 'aggEvt', target: 'emqx', animated: true, style: ES, data: { rev: true }, sourceHandle: 'src-top', targetHandle: 'tgt-right', type: 'smoothstep', ...lbl('Aggregated Event Stream') },
+                // EMQX → Persistence Workers ($share)
+                { id: 'ead', source: 'emqx', target: 'aggDb', animated: true, style: ES, sourceHandle: 'src-bottom', targetHandle: 'tgt-left', type: 'smoothstep', ...lbl('$share subscription') },
+                // Persistence → Data Store
+                { id: 'ads', source: 'aggDb', target: 'datalake', animated: true, style: ES, ...lbl('Persist') },
+                // EMQX fan-out back to edge brokers (broadcast path)
+                { id: 'eb1', source: 'emqx', target: 'edgeNA',   animated: true, style: ES, data: { rev: true }, sourceHandle: 'src-left', targetHandle: 'tgt-right', type: 'smoothstep' },
+                { id: 'eb2', source: 'emqx', target: 'edgeEU',   animated: true, style: ES, data: { rev: true }, sourceHandle: 'src-left', targetHandle: 'tgt-right', type: 'smoothstep' },
+                { id: 'eb3', source: 'emqx', target: 'edgeAPAC', animated: true, style: ES, data: { rev: true }, sourceHandle: 'src-left', targetHandle: 'tgt-right', type: 'smoothstep' },
+            ];
+
+            const nodeTypes = { device: DNode, cluster: ClusterNode, output: ONode };
+            const edgeTypes = { gradient: GEdge };
+
+            function cloneNodes(list) { return list.map(n => ({ ...n, position: { ...n.position } })); }
+            function loadPos(base) {
+                try {
+                    const raw = localStorage.getItem(STORE);
+                    if (!raw) return cloneNodes(base);
+                    const saved = JSON.parse(raw);
+                    return base.map(n => { const p = saved[n.id]; return (p && typeof p.x === 'number') ? { ...n, position: { x: p.x, y: p.y } } : { ...n, position: { ...n.position } }; });
+                } catch { return cloneNodes(base); }
+            }
+            function savePos(list) {
+                try { localStorage.setItem(STORE, JSON.stringify(Object.fromEntries(list.map(n => [n.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) }])))); } catch { }
+            }
+
+            function FlowCanvas() {
+                const [nodes, setNodes] = React.useState(() => loadPos(baseNodes));
+                const onChange = React.useCallback(ch => setNodes(cur => applyNodeChanges(ch, cur)), []);
+                React.useEffect(() => { savePos(nodes); }, [nodes]);
+                React.useEffect(() => {
+                    if (!resetBtn) return;
+                    const fn = () => { try { localStorage.removeItem(STORE); } catch { } setNodes(cloneNodes(baseNodes)); };
+                    resetBtn.addEventListener('click', fn);
+                    return () => resetBtn.removeEventListener('click', fn);
+                }, []);
+                return React.createElement(RF, {
+                    nodes, edges, nodeTypes, edgeTypes, onNodesChange: onChange,
+                    defaultEdgeOptions: { type: 'gradient' },
+                    fitView: true, fitViewOptions: { padding: L2.pad, maxZoom: L2.mxZ },
+                    panOnDrag: false, zoomOnScroll: false, zoomOnPinch: false, zoomOnDoubleClick: false,
+                    nodesDraggable: true, nodesConnectable: false, elementsSelectable: true,
+                    preventScrolling: false, minZoom: L2.mnZ, maxZoom: 1.2,
+                    proOptions: { hideAttribution: true },
+                },
+                    React.createElement(Background, { color: 'rgba(139,92,246,0.12)', variant: BackgroundVariant ? BackgroundVariant.Lines : 'lines', gap: 48 }),
+                    React.createElement(Controls, { position: 'bottom-right', showInteractive: false })
+                );
+            }
+
+            try {
+                ReactDOM.createRoot(root).render(
+                    React.createElement('div', { style: { width: '100%', height: '100%' } }, React.createElement(FlowCanvas))
+                );
+            } catch (err) {
+                root.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:13px">Render failed.</div>';
+                console.error('[RF]', err);
+            }
+        })();
+    </script>
+</body>
+
+</html>
