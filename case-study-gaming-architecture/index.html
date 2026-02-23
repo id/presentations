@@ -779,11 +779,8 @@
             <h1>Massively Multiplayer<br /><span class="title-gradient">Real-time Architecture</span></h1>
             <p class="title-sub">A case study: MQTT at 1M+ concurrent connections in a social massively multiplayer
                 online game</p>
-            <div class="title-meta">
-                <span class="title-dot"></span>
-                MQTT Beyond Meetup · 2026
-            </div>
-            <p class="text-sm" style="color:var(--text-muted);margin-top:1.2rem">Architecture generalized from a real
+            <p class="title-sub" style="font-size:0.9rem;margin-top:1.8rem">MQTT Beyond Meetup · 2026</p>
+            <p class="title-sub" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.7">Architecture generalized from a real
                 production deployment.</p>
         </div>
 
@@ -969,7 +966,7 @@
                         </ul>
                     </div>
                     <div class="card card-good">
-                        <h3 class="good">MQTT — a network X-ray</h3>
+                        <h3 class="good">MQTT broker — built-in transport visibility</h3>
                         <ul class="bullets">
                             <li><strong>The broker sees the network, not the game.</strong> Application-level bugs still
                                 need your own tooling. What the broker gives you is visibility into the
@@ -983,12 +980,10 @@
                             <li><strong>Live topic inspection</strong> for scoped investigation:
                                 <pre
                                     style="margin-top:0.5rem;font-size:0.72rem;background:rgba(0,0,0,0.04);border-radius:0.4rem;padding:0.5rem 0.7rem;font-family:'Geist Mono',monospace;color:var(--text-muted)">SUBSCRIBE game/room/42/#</pre>
-                                Watch one room's traffic in real time — no code changes, no redeployment, invisible to
-                                players.
+                                Watch one room's traffic in real time without code changes or redeployment.
                             </li>
-                            <li><strong>Built-in packet tracing.</strong> The broker natively provides packet tracing,
-                                allowing you to easily inspect payload data live in a non-disruptive way. You do not
-                                need a separate application or proxy to inspect traffic.</li>
+                            <li><strong>Built-in packet tracing.</strong> The broker provides packet tracing —
+                                inspect payload data live without a separate proxy or sniffing tool.</li>
                             <li><strong>Scale caveat:</strong> At high message rates, you scope your debug subscription narrowly
                                 (<code>game/room/42/player/17/#</code>) or sample. This is targeted investigation, not
                                 "subscribe to everything and read it all."</li>
@@ -1027,20 +1022,19 @@
                         <ul class="bullets">
                             <li><strong>Unified edge layer.</strong> Proper game architectures already use edge proxies
                                 to handle socket I/O, TLS, and keepalives. The broker replaces those edge pipes with
-                                a single layer that handles <em>both</em> transport connectivity and robust pub/sub
-                                routing at
-                                massive scale.</li>
+                                a single layer that handles both transport connectivity and pub/sub
+                                routing.</li>
                             <li><strong>Offloading the fan-out loop.</strong> Even with an edge proxy, a typical game
                                 server must iterate over memory structures to fan out messages to specific client
                                 connections. With a broker, the game loop publishes exactly <em>once</em> per tick.
                                 The broker duplicates the payloads to all topic subscribers.</li>
-                            <li><strong>Operational leverage.</strong> QoS, state synchronization, and data export —
-                                each is a feature you'd otherwise build, test, and maintain as custom control-plane
-                                logic behind your proxies.</li>
-                            <li><strong>Battle-tested infrastructure.</strong> EMQX is deployed at scale in IoT, automotive, and telecom —
-                                but this workload profile (high-frequency, low-latency game events) is a different beast. What makes it viable here is
-                                EMQX's Erlang/OTP foundation: lightweight processes, preemptive scheduling, and soft-realtime GC
-                                designed for exactly this class of concurrent messaging.</li>
+                            <li><strong>Less custom code.</strong> QoS, state synchronization, and data export are
+                                broker features you'd otherwise build, test, and maintain as custom logic behind
+                                your proxies.</li>
+                            <li><strong>Erlang/OTP runtime characteristics.</strong> EMQX is used in IoT, automotive, and telecom,
+                                but game traffic (high-frequency, low-latency) is a different workload. The Erlang/OTP runtime —
+                                lightweight processes, preemptive scheduling, soft-realtime GC — handles massive concurrency
+                                without stop-the-world pauses, which is why the broker doesn't fall over at 1M connections.</li>
                             <li><strong>Resilient state recovery.</strong> The broker shields the backend from
                                 connection chaos and TLS thundering herds, while Retained Messages provide instant
                                 secondary state to reconnecting clients without separate REST APIs.</li>
@@ -1070,10 +1064,9 @@
 <span class="cm"># Replay in-order → transition to live feed</span></pre>
                             <p style="margin-top:.5rem">Partitioned by key expression (e.g., <code
                                     style="font-family:monospace;font-size:.88em">room_id</code>) with strict
-                                per-partition ordering — the core Kafka pattern, inside the broker. For many workloads
-                                this replaces a dedicated Kafka cluster. Maintaining Kafka is a non-trivial operational
-                                burden, and managed Kafka is expensive. When you do need a full data lake, EMQX bridges
-                                natively to Kafka, Snowflake, or ClickHouse.</p>
+                                per-partition ordering. For workloads that only need ordered replay (not full stream
+                                processing), this can replace a separate Kafka cluster — one fewer system to operate.
+                                When you do need a data lake, EMQX can bridge to Kafka, Snowflake, or ClickHouse.</p>
                         </div>
                     </div>
                     <div class="vert">
@@ -1110,9 +1103,8 @@ PUBLISH <span class="hi">$queue/player-commands/player/{id}/commands</span>
             <h2>Where else do these patterns apply?</h2>
             <div class="slide-content">
                 <div class="disc-box" style="margin-bottom:1rem">
-                    <h3>Question</h3>
-                    <p>Where in your stack do you have more than a few hundred clients waiting for the same update? Are
-                        you polling somewhere today that could be a subscription?</p>
+                    <h3>Observation</h3>
+                    <p>Architectures currently relying on high-frequency polling for shared state can often be optimized via persistent topic subscriptions.</p>
                 </div>
                 <div class="g4">
                     <div class="card">
@@ -1135,9 +1127,8 @@ PUBLISH <span class="hi">$queue/player-commands/player/{id}/commands</span>
                     </div>
                     <div class="card">
                         <h3>Messaging &amp; social</h3>
-                        <p>"Is typing…", presence, read receipts. For offline delivery, EMQX's Message Queue (not Retained Messages)
-                            holds missed messages and delivers them QoS 1 when the client reconnects — no FCM workarounds or separate
-                            queue store. Retained Messages gives the <em>latest state</em> per topic (e.g., current status), not full message history.</p>
+                        <p>"Is typing…", presence, read receipts. For offline delivery, the Message Queue
+                            holds missed messages and delivers them QoS 1 when the client reconnects.</p>
                     </div>
                 </div>
             </div>
@@ -1158,8 +1149,8 @@ PUBLISH <span class="hi">$queue/player-commands/player/{id}/commands</span>
                                 storms — so the game server never touches raw socket I/O</li>
                             <li>Your game logic processes validated inputs. Fan-out, QoS, session persistence, and
                                 shared consumers are the broker's job</li>
-                            <li>The trade-off is ~10–20 ms of datacenter latency. For a cooperative social game, that
-                                buys enormous operational leverage</li>
+                            <li>The trade-off is ~10–20 ms of datacenter latency. For a cooperative social game,
+                                that's a reasonable trade for offloading connection management and fan-out entirely</li>
                         </ul>
                     </div>
                     <div class="card">
@@ -1170,15 +1161,15 @@ PUBLISH <span class="hi">$queue/player-commands/player/{id}/commands</span>
                                 <em>and</em> the pub/sub routing state, allowing instant topology recovery.
                             </li>
                             <li>MQTT Streams can replace a dedicated Kafka cluster for many game event workloads — one
-                                fewer system to operate and pay for</li>
+                                fewer system to operate</li>
                             <li>Retained Messages handle secondary state (cosmetics, flags, room weather) on reconnect —
                                 the game server doesn't package it</li>
                         </ul>
                     </div>
                     <div class="card">
-                        <h3>Resilience by design</h3>
+                        <h3>Failure modes and recovery</h3>
                         <ul class="bullets">
-                            <li><strong>Broker node failure:</strong> EMQX's clustered architecture means sessions migrate to surviving nodes.
+                            <li><strong>Broker node failure:</strong> In a clustered broker, sessions migrate to surviving nodes.
                                 Clients reconnect to another node in the cluster and resume their subscriptions — no application-level orchestration required.</li>
                             <li><strong>Backend crash:</strong> The broker holds client connections while game servers restart.
                                 Players stay connected; the new server instance subscribes and picks up where the old one left off.</li>
