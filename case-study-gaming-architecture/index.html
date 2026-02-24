@@ -780,8 +780,7 @@
             <p class="title-sub">A case study: MQTT at 1M+ concurrent connections in a social massively multiplayer
                 online game</p>
             <p class="title-sub" style="font-size:0.9rem;margin-top:1.8rem">MQTT Beyond Meetup · 2026</p>
-            <p class="title-sub" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.7">Architecture generalized from a real
-                production deployment.</p>
+            <p class="title-sub" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.7">Generalized from a real production deployment.</p>
         </div>
 
         <!-- ─────────────────────────────────────── -->
@@ -821,16 +820,12 @@
                         <div class="stat-sub">iOS + Android</div>
                     </div>
                 </div>
-                <p class="text-muted">A cooperative, non-competitive game — players share the same world, rooms are
-                    bounded spaces where all occupants can see each other. No hit registration, no per-player visibility
-                    filtering, no anti-cheat constraints on message routing. The room boundary is the fan-out boundary.
-                    With ~200 players per room, broker egress is orders of magnitude higher than ingest.
-                </p>
-                <p class="text-muted" style="margin-top:0.6rem">Originally HTTP-based. Latency spikes under load, mobile
-                    clients dropping connections on any network transition, and fan-out complexity growing with every
-                    new player in a room. This talk walks through the architecture that replaced it.</p>
-                <p class="text-muted" style="margin-top:0.6rem"><strong>Scope:</strong> This architecture fits a specific class of game — cooperative, social, non-competitive.
-                    Competitive games with authoritative physics or anti-cheat requirements would position the broker differently (or bypass it for the hot loop entirely).</p>
+                <p class="text-muted">Cooperative, non-competitive — players share the same world in bounded rooms (~200 players each).
+                    The room boundary is the fan-out boundary. Broker egress is orders of magnitude higher than ingest.</p>
+                <p class="text-muted" style="margin-top:0.6rem">Originally HTTP-based. Replaced due to latency spikes under load,
+                    mobile disconnects on network transitions, and fan-out complexity scaling with room size.</p>
+                <p class="text-muted" style="margin-top:0.6rem"><strong>Scope:</strong> This fits cooperative/social games.
+                    Competitive games with authoritative physics would position the broker differently.</p>
             </div>
         </div>
 
@@ -860,245 +855,219 @@
         </div>
 
         <!-- ─────────────────────────────────────── -->
-        <!-- Slide 4: Edge layer                     -->
+        <!-- Slide 4: Edge stack comparison            -->
         <!-- ─────────────────────────────────────── -->
         <div class="slide slide-centered" id="s4">
-            <span class="slide-tag">Layer 1</span>
-            <h2>Regional edge brokers</h2>
-            <div class="slide-content">
-                <div class="vert">
-                    <div class="g3" style="height:auto">
-                        <div class="card">
-                            <h3>NA cluster</h3>
-                            <p>Players in North America connect to the nearest EMQX edge node. Round-trip from New York to
-                                the NA edge: ~8ms. To a central EU cluster: ~90ms.</p>
-                        </div>
-                        <div class="card">
-                            <h3>EU cluster</h3>
-                            <p>Same pattern for Europe. Each regional cluster accepts MQTT connections and bridges to the
-                                central cluster over an MQTT bridge connection.</p>
-                        </div>
-                        <div class="card">
-                            <h3>APAC cluster</h3>
-                            <p>Tokyo, Singapore, Sydney. Mobile-heavy market. Regional edges give mobile players a fast,
-                                localized connection point.</p>
-                        </div>
-                    </div>
-                    <div class="card" style="flex:0 0 auto">
-                        <h3>Star topology &amp; cross-region rooms</h3>
-                        <p><strong>Star topology:</strong> Regional edge clusters bridge to a central cluster via stable datacenter-grade MQTT bridge connections — not client-grade links.
-                            Inter-cluster bridging is a persistent, high-throughput server-to-server channel with its own reconnect and buffering logic.</p>
-                        <p><strong>Cross-region rooms:</strong> When players from different regions join the same room, the authoritative broker for that room is the central cluster.
-                            Edge brokers relay messages to/from their local players — adding one regional hop but keeping the fan-out centralized and consistent.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ─────────────────────────────────────── -->
-        <!-- Slide 5: HTTP vs MQTT                   -->
-        <!-- ─────────────────────────────────────── -->
-        <div class="slide slide-centered" id="s5">
-            <span class="slide-tag">Why not raw WebSockets</span>
-            <h2>The protocol mismatch</h2>
+            <span class="slide-tag">Comparison</span>
+            <h2>Edge stack comparison</h2>
             <div class="slide-content">
                 <div class="g2">
-                    <div class="card card-bad">
-                        <h3 class="bad">WebSockets · SSE</h3>
-                        <ul class="bullets">
-                            <li><strong>A raw pipe — nothing more.</strong> WebSocket gives you a bidirectional byte
-                                stream. Player location broadcast, interest management (AoI), reliable events vs
-                                unreliable updates, reconnect state synchronization: none of that exists
-                                in the protocol. It is all your application code.</li>
-                            <li><strong>Point-to-point fan-out.</strong> 1,000 subscribers means your server calls
-                                send() 1,000 times. The protocol has no concept of publish-once-deliver-many.</li>
+                    <div class="card card-bad" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+                        <h3 class="bad" style="align-self:flex-start">Edge Proxy + Custom Pub/Sub</h3>
+                        <svg viewBox="0 0 380 240" fill="none" style="width:100%;margin:0.6rem 0 0.2rem">
+                            <!-- Game Server -->
+                            <rect x="8" y="82" width="90" height="46" rx="9" fill="rgba(139,92,246,0.08)" stroke="rgba(139,92,246,0.25)" stroke-width="1.2"/>
+                            <text x="53" y="110" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="11" font-weight="600" fill="#6d28d9">Game Server</text>
 
-                            <li><strong>SSE is one-directional</strong> — server push only. Client responses require a
-                                separate HTTP channel.</li>
-                        </ul>
+                            <!-- Custom pub/sub layer -->
+                            <rect x="118" y="52" width="72" height="106" rx="9" fill="rgba(239,68,68,0.05)" stroke="rgba(239,68,68,0.25)" stroke-dasharray="5 3" stroke-width="1.2"/>
+                            <text x="154" y="76" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="10" font-weight="700" fill="#dc2626">Custom</text>
+                            <text x="154" y="90" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="10" font-weight="700" fill="#dc2626">Pub/Sub</text>
+                            <text x="154" y="108" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" fill="#94a3b8">routing</text>
+                            <text x="154" y="120" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" fill="#94a3b8">fan-out</text>
+                            <text x="154" y="132" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" fill="#94a3b8">QoS · sessions</text>
+
+                            <!-- Edge proxy -->
+                            <rect x="210" y="60" width="68" height="90" rx="9" fill="rgba(245,158,11,0.06)" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
+                            <text x="244" y="96" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="10" font-weight="700" fill="#d97706">Edge</text>
+                            <text x="244" y="110" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="10" font-weight="700" fill="#d97706">Proxy</text>
+                            <text x="244" y="128" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" fill="#94a3b8">TLS · keep-alive</text>
+
+                            <!-- Clients -->
+                            <circle cx="340" cy="28" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="32" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C1</text>
+                            <circle cx="340" cy="66" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="70" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C2</text>
+                            <circle cx="340" cy="105" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="109" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C3</text>
+                            <circle cx="340" cy="144" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="148" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C4</text>
+                            <circle cx="340" cy="182" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="186" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C5</text>
+
+                            <!-- Arrows: server → pub/sub -->
+                            <line x1="98" y1="105" x2="118" y2="105" stroke="rgba(239,68,68,0.35)" stroke-width="1.5"/>
+                            <!-- Arrows: pub/sub → proxy -->
+                            <line x1="190" y1="78" x2="210" y2="78" stroke="rgba(239,68,68,0.3)" stroke-width="1.2"/>
+                            <line x1="190" y1="96" x2="210" y2="96" stroke="rgba(239,68,68,0.3)" stroke-width="1.2"/>
+                            <line x1="190" y1="114" x2="210" y2="114" stroke="rgba(239,68,68,0.3)" stroke-width="1.2"/>
+                            <line x1="190" y1="132" x2="210" y2="132" stroke="rgba(239,68,68,0.3)" stroke-width="1.2"/>
+                            <!-- Arrows: proxy → clients -->
+                            <line x1="278" y1="78" x2="327" y2="28" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
+                            <line x1="278" y1="88" x2="327" y2="66" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
+                            <line x1="278" y1="105" x2="327" y2="105" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
+                            <line x1="278" y1="122" x2="327" y2="144" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
+                            <line x1="278" y1="132" x2="327" y2="182" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
+                        </svg>
                     </div>
-                    <div class="card card-good">
-                        <h3 class="good">MQTT</h3>
-                        <ul class="bullets">
-                            <li><strong>Pub/sub is the protocol.</strong> Publishers and subscribers are decoupled by
-                                design. The broker handles topic routing, fan-out, and delivery — not your server.</li>
-                            <li><strong>Broker fan-out.</strong> Publish once; broker delivers to every subscriber. Your
-                                game server sends one message regardless of how many clients are in the room.</li>
-                            <li><strong>QoS 0 / 1 / 2</strong> — delivery guarantees are a protocol primitive, not
-                                application code.</li>
-                            <li><strong>Keep-Alive heartbeat</strong> — broker detects silent disconnects; mobile radio
-                                can sleep between heartbeats.</li>
-                            <li><strong>Session persistence</strong> — the broker remembers the client's session state
-                                across
-                                network transitions, avoiding full application-level reconnects if the socket drops.
-                            </li>
+                    <div class="card card-good" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+                        <h3 class="good" style="align-self:flex-start">MQTT Broker</h3>
+                        <svg viewBox="0 0 380 240" fill="none" style="width:100%;margin:0.6rem 0 0.2rem">
+                            <!-- Game Server -->
+                            <rect x="8" y="82" width="90" height="46" rx="9" fill="rgba(139,92,246,0.08)" stroke="rgba(139,92,246,0.25)" stroke-width="1.2"/>
+                            <text x="53" y="110" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="11" font-weight="600" fill="#6d28d9">Game Server</text>
 
-                        </ul>
+                            <!-- MQTT Broker -->
+                            <rect x="120" y="32" width="136" height="146" rx="12" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
+                            <text x="188" y="72" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="11" font-weight="700" fill="#059669">MQTT</text>
+                            <text x="188" y="88" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="11" font-weight="700" fill="#059669">Broker</text>
+                            <text x="188" y="110" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" fill="#64748b">routing · fan-out</text>
+                            <text x="188" y="122" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" fill="#64748b">QoS · sessions</text>
+                            <text x="188" y="134" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" fill="#64748b">TLS · keep-alive</text>
+                            <text x="188" y="146" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" fill="#64748b">reconnect</text>
+                            <text x="188" y="162" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#059669">open standard · no vendor lock-in</text>
+
+                            <!-- Clients -->
+                            <circle cx="340" cy="28" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="32" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C1</text>
+                            <circle cx="340" cy="66" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="70" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C2</text>
+                            <circle cx="340" cy="105" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="109" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C3</text>
+                            <circle cx="340" cy="144" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="148" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C4</text>
+                            <circle cx="340" cy="182" r="13" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.25)" stroke-width="1.2"/><text x="340" y="186" text-anchor="middle" font-family="Geist,system-ui" font-size="9" fill="#64748b">C5</text>
+
+                            <!-- Single arrow: server → broker -->
+                            <line x1="98" y1="105" x2="120" y2="105" stroke="rgba(16,185,129,0.55)" stroke-width="3" stroke-linecap="round"/>
+
+                            <!-- Fan-out: broker → clients -->
+                            <line x1="256" y1="72" x2="327" y2="28" stroke="rgba(16,185,129,0.3)" stroke-width="1.3"/>
+                            <line x1="256" y1="85" x2="327" y2="66" stroke="rgba(16,185,129,0.3)" stroke-width="1.3"/>
+                            <line x1="256" y1="105" x2="327" y2="105" stroke="rgba(16,185,129,0.3)" stroke-width="1.3"/>
+                            <line x1="256" y1="125" x2="327" y2="144" stroke="rgba(16,185,129,0.3)" stroke-width="1.3"/>
+                            <line x1="256" y1="138" x2="327" y2="182" stroke="rgba(16,185,129,0.3)" stroke-width="1.3"/>
+
+                            <!-- "all included" bracket -->
+                            <line x1="120" y1="192" x2="256" y2="192" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <line x1="120" y1="187" x2="120" y2="192" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <line x1="256" y1="187" x2="256" y2="192" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <text x="188" y="208" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="10" font-weight="600" fill="#059669">all included</text>
+                        </svg>
                     </div>
                 </div>
-                <p class="text-muted" style="margin-top:0.8rem;font-size:0.82rem"><strong>Caveat:</strong> Real production WebSocket architectures use edge proxies (Envoy, HAProxy) that handle TLS, keepalives, and connection pooling — not raw sockets.
-                    The more honest comparison is MQTT broker vs. edge-proxy-plus-custom-pub/sub-layer. Slide 7 addresses that trade-off directly.</p>
             </div>
         </div>
 
         <!-- ─────────────────────────────────────── -->
-        <!-- Slide 6: Observability                  -->
+        <!-- Slide 5: Observability                  -->
         <!-- ─────────────────────────────────────── -->
-        <div class="slide slide-centered" id="s6">
+        <div class="slide slide-centered" id="s5">
             <span class="slide-tag">Operations</span>
             <h2>Observable by design</h2>
             <div class="slide-content">
-                <div class="g2">
-                    <div class="card card-bad">
-                        <h3 class="bad">HTTP · WebSockets · SSE</h3>
-                        <ul class="bullets">
-                            <li><strong>Standard monitoring still applies.</strong> Teams build Grafana/Datadog dashboards regardless of transport.
-                                The question is what <em>additional</em> live inspection capability you get from the transport layer itself.</li>
-                            <li><strong>Player-specific investigation:</strong> filter logs by <code>session_id</code>
-                                or <code>player_id</code>. Works, but requires a logging stack (ELK, Splunk, Datadog)
-                                and you're still reading text, not watching live traffic.</li>
-                            <li><strong>Network-level sniffing</strong> (tcpdump, Wireshark) gives full packet
-                                visibility but is cumbersome to set up on production hosts and rarely done in practice.
-                            </li>
-                            <li><strong>A proxy</strong> (mitmproxy, sidecar) can intercept traffic in real time but is
-                                seldom deployed just for debugging — it is extra infrastructure that sits in the request
-                                path permanently.</li>
-                        </ul>
+                <div class="g2" style="height:auto">
+                    <div>
+                        <!-- Terminal mockup -->
+                        <div style="background:#1e293b;border-radius:0.7rem;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.12)">
+                            <div style="background:#334155;padding:6px 12px;display:flex;align-items:center;gap:6px">
+                                <span style="width:10px;height:10px;border-radius:50%;background:#ef4444"></span>
+                                <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b"></span>
+                                <span style="width:10px;height:10px;border-radius:50%;background:#22c55e"></span>
+                                <span style="color:#94a3b8;font-size:0.68rem;font-weight:500;margin-left:8px;font-family:'Geist Mono',monospace">live debug session</span>
+                            </div>
+                            <div style="padding:0.7rem 0.9rem;font-family:'Geist Mono',monospace;font-size:0.72rem;line-height:1.85;color:#e2e8f0">
+                                <div style="color:#64748b">$ mosquitto_sub -t 'game/room/42/#' -v</div>
+                                <div><span style="color:#60a5fa">game/room/42/pos</span> <span style="color:#94a3b8">{"p":"p_17","x":142,"y":88}</span></div>
+                                <div><span style="color:#60a5fa">game/room/42/pos</span> <span style="color:#94a3b8">{"p":"p_23","x":301,"y":55}</span></div>
+                                <div><span style="color:#f59e0b">game/room/42/evt</span> <span style="color:#94a3b8">{"type":"item_pickup","p":"p_23"}</span></div>
+                                <div><span style="color:#60a5fa">game/room/42/pos</span> <span style="color:#94a3b8">{"p":"p_17","x":145,"y":91}</span></div>
+                                <div><span style="color:#10b981">game/room/42/chat</span> <span style="color:#94a3b8">{"p":"p_17","msg":"hello!"}</span></div>
+                                <div><span style="color:#ef4444">game/room/42/$SYS/disconnect</span> <span style="color:#94a3b8">{"client":"p_08","rc":142}</span></div>
+                                <div style="color:#475569">▊</div>
+                            </div>
+                        </div>
+                        <p style="color:#64748b;font-size:0.75rem;margin-top:0.5rem;text-align:center">Subscribe to any topic wildcard — watch live traffic without code changes or redeployment</p>
                     </div>
-                    <div class="card card-good">
-                        <h3 class="good">MQTT broker — built-in transport visibility</h3>
-                        <ul class="bullets">
-                            <li><strong>The broker sees the network, not the game.</strong> Application-level bugs still
-                                need your own tooling. What the broker gives you is visibility into the
-                                <strong>transport layer</strong>: did the client drop the connection, or did the server
-                                stop sending? An edge proxy gives this for TCP; the broker gives this <em>per
-                                    topic</em>.
-                            </li>
-                            <li><strong>Delivery health is built in.</strong> Disconnect Reason Codes, LWT (Last Will),
-                                and QoS unacknowledged message queues tell you exactly where the pipeline broke —
-                                without touching game server logs or C++ engine code.</li>
-                            <li><strong>Live topic inspection</strong> for scoped investigation:
-                                <pre
-                                    style="margin-top:0.5rem;font-size:0.72rem;background:rgba(0,0,0,0.04);border-radius:0.4rem;padding:0.5rem 0.7rem;font-family:'Geist Mono',monospace;color:var(--text-muted)">SUBSCRIBE game/room/42/#</pre>
-                                Watch one room's traffic in real time without code changes or redeployment.
-                            </li>
-                            <li><strong>Built-in packet tracing.</strong> The broker provides packet tracing —
-                                inspect payload data live without a separate proxy or sniffing tool.</li>
-                            <li><strong>Scale caveat:</strong> At high message rates, you scope your debug subscription narrowly
-                                (<code>game/room/42/player/17/#</code>) or sample. This is targeted investigation, not
-                                "subscribe to everything and read it all."</li>
-                        </ul>
+                    <div class="vert" style="height:auto;gap:0.7rem;justify-content:center">
+                        <div class="card" style="flex:0 0 auto">
+                            <h3>Without a broker</h3>
+                            <p>Filter logs by <code>session_id</code> in ELK/Datadog, or set up tcpdump/mitmproxy on production hosts. Works, but you're reading text — not watching live traffic.</p>
+                        </div>
+                        <div class="card" style="flex:0 0 auto">
+                            <h3>Transport-level visibility per topic</h3>
+                            <p>Did the client drop, or did the server stop sending? The broker answers this <em>per topic</em> — without game server logs.</p>
+                        </div>
+                        <div class="card" style="flex:0 0 auto">
+                            <h3>Delivery health + packet tracing</h3>
+                            <p>Disconnect Reason Codes, LWT, QoS unacked queues. Inspect payloads live. At scale, scope narrowly: <code>game/room/42/player/17/#</code></p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- ─────────────────────────────────────── -->
-        <!-- Slide 7: Trade-offs                     -->
+        <!-- Slide 6: Trade-offs                     -->
         <!-- ─────────────────────────────────────── -->
-        <div class="slide slide-centered" id="s7">
+        <div class="slide slide-centered" id="s6">
             <span class="slide-tag">Honest engineering</span>
             <h2>Trade-offs: latency vs. connection offloading</h2>
             <div class="slide-content">
-                <div class="g2">
+                <!-- Latency path diagram -->
+                <div style="display:flex;justify-content:center;margin-bottom:1rem">
+                    <svg viewBox="0 0 640 70" fill="none" style="width:100%;max-width:720px">
+                        <!-- Client -->
+                        <rect x="2" y="16" width="90" height="38" rx="8" fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)"/>
+                        <text x="47" y="40" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9.5" font-weight="600" fill="#475569">Client</text>
+                        <!-- Arrow 1 -->
+                        <line x1="92" y1="35" x2="170" y2="35" stroke="rgba(239,68,68,0.4)" stroke-width="1.5" marker-end="url(#arr-red)"/>
+                        <rect x="108" y="8" width="48" height="16" rx="4" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)"/>
+                        <text x="132" y="19" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7.5" font-weight="700" fill="#dc2626">~8 ms</text>
+                        <!-- Edge Broker -->
+                        <rect x="170" y="16" width="110" height="38" rx="8" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.3)"/>
+                        <text x="225" y="40" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9.5" font-weight="600" fill="#2563eb">Edge Broker</text>
+                        <!-- Arrow 2 -->
+                        <line x1="280" y1="35" x2="358" y2="35" stroke="rgba(239,68,68,0.4)" stroke-width="1.5" marker-end="url(#arr-red)"/>
+                        <rect x="293" y="8" width="58" height="16" rx="4" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)"/>
+                        <text x="322" y="19" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7.5" font-weight="700" fill="#dc2626">20-80 ms</text>
+                        <!-- Central Broker -->
+                        <rect x="358" y="12" width="120" height="46" rx="9" fill="rgba(139,92,246,0.07)" stroke="rgba(139,92,246,0.35)" stroke-dasharray="4 3"/>
+                        <text x="418" y="40" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9.5" font-weight="600" fill="#7c3aed">Central Broker</text>
+                        <!-- Arrow 3 -->
+                        <line x1="478" y1="35" x2="540" y2="35" stroke="rgba(16,185,129,0.5)" stroke-width="1.5" marker-end="url(#arr-grn)"/>
+                        <rect x="491" y="8" width="40" height="16" rx="4" fill="rgba(16,185,129,0.08)" stroke="rgba(16,185,129,0.2)"/>
+                        <text x="511" y="19" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7.5" font-weight="700" fill="#059669">&lt;1 ms</text>
+                        <!-- Game Server -->
+                        <rect x="540" y="16" width="96" height="38" rx="8" fill="rgba(16,185,129,0.08)" stroke="rgba(16,185,129,0.3)"/>
+                        <text x="588" y="40" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9.5" font-weight="600" fill="#059669">Game Server</text>
+                        <!-- Total -->
+                        <text x="320" y="64" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" font-weight="600" fill="#94a3b8">total added latency: ~30-90 ms round-trip</text>
+                        <!-- Arrow markers -->
+                        <defs>
+                            <marker id="arr-red" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="rgba(239,68,68,0.4)" stroke-width="1"/></marker>
+                            <marker id="arr-grn" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="rgba(16,185,129,0.5)" stroke-width="1"/></marker>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="g2" style="height:auto">
                     <div class="card card-bad">
                         <h3 class="bad">The cost you pay</h3>
                         <ul class="bullets">
-                            <li><strong>Latency and Jitter.</strong> <code
-                                    style="font-family:monospace;font-size:.85em;background:rgba(0,0,0,.05);padding:1px 4px;border-radius:3px">Client → Broker → Room Server</code>.
-                                This adds ~10–20 ms of unloaded latency. However, during flash crowds (e.g., 1,000
-                                players spawning at once), broker topic-matching and fan-out routines can cause
-                                unpredictable latency jitter, breaking movement prediction.</li>
-                            <li><strong>A heavier edge component.</strong> Compared to a lightweight, finely-tuned edge
-                                proxy like Envoy or a custom UDP gateway, an Erlang/OTP distributed broker is massive
-                                and complex to operate, monitor, and tune.</li>
-                            <li><strong>Binary payloads are opaque to the broker.</strong> The broker routes bytes; it
-                                cannot inspect or validate game-specific serialization. That logic stays in your server.
-                            </li>
+                            <li><strong>Latency + jitter.</strong> ~10-20 ms unloaded. Flash crowds can cause unpredictable spikes in broker topic-matching</li>
+                            <li><strong>Less familiar tooling.</strong> Game teams know Redis, Envoy, custom UDP — an MQTT broker is a new component to learn, operate, and debug</li>
+                            <li><strong>Opaque payloads.</strong> Broker routes bytes — game-specific validation stays in your server</li>
                         </ul>
                     </div>
                     <div class="card card-good">
                         <h3 class="good">What you get in return</h3>
                         <ul class="bullets">
-                            <li><strong>Unified edge layer.</strong> Proper game architectures already use edge proxies
-                                to handle socket I/O, TLS, and keepalives. The broker replaces those edge pipes with
-                                a single layer that handles both transport connectivity and pub/sub
-                                routing.</li>
-                            <li><strong>Offloading the fan-out loop.</strong> Even with an edge proxy, a typical game
-                                server must iterate over memory structures to fan out messages to specific client
-                                connections. With a broker, the game loop publishes exactly <em>once</em> per tick.
-                                The broker duplicates the payloads to all topic subscribers.</li>
-                            <li><strong>Less custom code.</strong> QoS, state synchronization, and data export are
-                                broker features you'd otherwise build, test, and maintain as custom logic behind
-                                your proxies.</li>
-                            <li><strong>Erlang/OTP runtime characteristics.</strong> EMQX is used in IoT, automotive, and telecom,
-                                but game traffic (high-frequency, low-latency) is a different workload. The Erlang/OTP runtime —
-                                lightweight processes, preemptive scheduling, soft-realtime GC — handles massive concurrency
-                                without stop-the-world pauses, which is why the broker doesn't fall over at 1M connections.</li>
-                            <li><strong>Resilient state recovery.</strong> The broker shields the backend from
-                                connection chaos and TLS thundering herds, while Retained Messages provide instant
-                                secondary state to reconnecting clients without separate REST APIs.</li>
+                            <li><strong>Unified edge.</strong> One layer for transport connectivity <em>and</em> pub/sub routing — replaces proxy + custom fan-out code</li>
+                            <li><strong>Erlang/OTP runtime.</strong> Preemptive scheduling, soft-realtime GC, no stop-the-world pauses at 1M connections</li>
+                            <li><strong>Session persistence.</strong> Mobile clients survive WiFi ↔ cellular without re-auth or full state resync</li>
+                            <li><strong>Open standard.</strong> MQTT is an OASIS/ISO standard — no vendor lock-in, broad client library support across languages and platforms</li>
+                            <li><strong>EMQX Streams + Message Queue.</strong> Event replay without Kafka, offline delivery for mobile clients (EMQX-specific extensions — covered in the previous talk)</li>
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Slide 8 Removed and compacted into Slide 7 -->
-
         <!-- ─────────────────────────────────────── -->
-        <!-- Slide 8: EMQX Protocol Extensions       -->
+        <!-- Slide 7: MQTT beyond gaming             -->
         <!-- ─────────────────────────────────────── -->
-        <div class="slide slide-centered" id="s8">
-            <span class="slide-tag">Beyond pub/sub</span>
-            <h2>EMQX Protocol Extensions</h2>
-            <div class="slide-content">
-                <div class="g2">
-                    <div class="vert">
-                        <div class="card card-new" style="flex:0 0 auto">
-                            <h3 class="new-feat">MQTT Streams</h3>
-                            <p>Persistent, append-only log attached to a topic. Any subscriber can start reading from
-                                any offset — 200 clients, 200 independent cursors, one stored history.</p>
-                            <pre class="code">SUBSCRIBE <span class="hi">$stream/positions/game/{room_id}/#</span>
-  <span class="cm">[MQTT Property]</span> <span class="kw">stream-offset</span>: <span class="st">{last_ts}</span>
-<span class="cm"># Replay in-order → transition to live feed</span></pre>
-                            <p style="margin-top:.5rem">Partitioned by key expression (e.g., <code
-                                    style="font-family:monospace;font-size:.88em">room_id</code>) with strict
-                                per-partition ordering. For workloads that only need ordered replay (not full stream
-                                processing), this can replace a separate Kafka cluster — one fewer system to operate.
-                                When you do need a data lake, EMQX can bridge to Kafka, Snowflake, or ClickHouse.</p>
-                        </div>
-                    </div>
-                    <div class="vert">
-                        <div class="card card-new" style="flex:0 0 auto">
-                            <h3 class="new-feat">Message Queue</h3>
-                            <pre class="code"><span class="cm"># Held if player is offline</span>
-PUBLISH <span class="hi">$queue/player-commands/player/{id}/commands</span>
-  <span class="st">{"type":"teleport","dest":"zone_7"}</span>
-<span class="cm"># Delivered QoS 1 when client reconnects</span></pre>
-                            <p style="margin-top:.5rem"><strong>Offline delivery</strong> — messages are persisted
-                                even when the target client is disconnected. Commands, notifications, or config updates
-                                are held in the queue and delivered reliably (QoS 1) when the client reconnects.</p>
-                            <p style="margin-top:.5rem"><strong>Last-Value semantics</strong> — with a queue key
-                                expression, only the latest message per key is retained. Ideal for dispatching the most
-                                recent configuration, cosmetic loadout, or announcement without stacking stale updates.
-                                <em>This is a different mechanism from standard MQTT Retained Messages</em> — Retained Messages deliver one message per topic to new subscribers (latest state);
-                                Message Queue Last-Value is per-key dedup in a persistent queue with offline delivery.
-                            </p>
-                            <p style="margin-top:.5rem"><strong>Dispatch strategies</strong> — distribute queued
-                                messages
-                                across multiple consumers via round-robin, random, or least-inflight routing. Useful for
-                                parallelizing command processing or batch work across a pool of workers.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ─────────────────────────────────────── -->
-        <!-- Slide 9: MQTT beyond gaming             -->
-        <!-- ─────────────────────────────────────── -->
-        <div class="slide slide-centered" id="s9">
+        <div class="slide slide-centered" id="s7">
             <span class="slide-tag">Discussion</span>
             <h2>Where else do these patterns apply?</h2>
             <div class="slide-content">
@@ -1106,38 +1075,177 @@ PUBLISH <span class="hi">$queue/player-commands/player/{id}/commands</span>
                     <h3>Observation</h3>
                     <p>Architectures currently relying on high-frequency polling for shared state can often be optimized via persistent topic subscriptions.</p>
                 </div>
-                <div class="g4">
-                    <div class="card">
-                        <h3>Financial market data</h3>
-                        <p>Tick data fan-out to thousands of subscribers from a single publish. Shared subscriptions
-                            distribute order-processing across execution engines. Retained Messages gives a late
-                            subscriber the current price without a bootstrap REST call.</p>
+                <div class="g2" style="height:auto">
+                    <div class="card" style="display:flex;flex-direction:column;align-items:center">
+                        <h3 style="align-self:flex-start">Financial market data</h3>
+                        <svg viewBox="0 0 340 170" fill="none" style="width:100%;margin:0.4rem 0">
+                            <!-- Exchange / source -->
+                            <rect x="8" y="58" width="70" height="40" rx="8" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
+                            <text x="43" y="75" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" font-weight="700" fill="#d97706">Exchange</text>
+                            <text x="43" y="88" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#94a3b8">tick data</text>
+
+                            <!-- Broker -->
+                            <rect x="118" y="42" width="80" height="72" rx="10" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
+                            <text x="158" y="68" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9" font-weight="700" fill="#059669">Broker</text>
+                            <text x="158" y="82" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">$share routing</text>
+                            <text x="158" y="93" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">retained msgs</text>
+
+                            <!-- Subscribers -->
+                            <rect x="242" y="16" width="90" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)"/>
+                            <text x="287" y="34" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Trading Desks</text>
+                            <rect x="242" y="56" width="90" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)"/>
+                            <text x="287" y="74" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Execution Engines</text>
+                            <rect x="242" y="96" width="90" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)"/>
+                            <text x="287" y="114" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Mobile Apps</text>
+                            <rect x="242" y="136" width="90" height="28" rx="6" fill="rgba(139,92,246,0.08)" stroke="rgba(139,92,246,0.25)"/>
+                            <text x="287" y="150" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" font-weight="600" fill="#7c3aed">Late subscriber</text>
+                            <text x="287" y="160" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6" fill="#94a3b8">→ retained = current price</text>
+
+                            <!-- Arrows -->
+                            <line x1="78" y1="78" x2="118" y2="78" stroke="rgba(245,158,11,0.4)" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="198" y1="62" x2="242" y2="30" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <line x1="198" y1="72" x2="242" y2="70" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <line x1="198" y1="82" x2="242" y2="110" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <line x1="198" y1="92" x2="242" y2="150" stroke="rgba(139,92,246,0.25)" stroke-width="1.2" stroke-dasharray="4 3"/>
+                        </svg>
                     </div>
-                    <div class="card">
-                        <h3>Collaborative editing</h3>
-                        <p>Cursor positions, shape mutations, presence across concurrent editors. The batch-write
-                            pattern applies: accumulate cursor-move events, broadcast at display cadence. Not every
-                            intermediate cursor position needs to reach every collaborator.</p>
-                    </div>
-                    <div class="card">
-                        <h3>Sports betting / live events</h3>
-                        <p>Odds change every few seconds. All subscribers need the latest number simultaneously. One
-                            publish to all, sub-second. Retained Messages: a newly opened app sees
-                            current odds immediately, no separate price API call.</p>
-                    </div>
-                    <div class="card">
-                        <h3>Messaging &amp; social</h3>
-                        <p>"Is typing…", presence, read receipts. For offline delivery, the Message Queue
-                            holds missed messages and delivers them QoS 1 when the client reconnects.</p>
+                    <div class="card" style="display:flex;flex-direction:column;align-items:center">
+                        <h3 style="align-self:flex-start">Sports betting / live events</h3>
+                        <svg viewBox="0 0 340 170" fill="none" style="width:100%;margin:0.4rem 0">
+                            <!-- Odds engine -->
+                            <rect x="8" y="58" width="70" height="40" rx="8" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
+                            <text x="43" y="75" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" font-weight="700" fill="#d97706">Odds</text>
+                            <text x="43" y="88" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#94a3b8">engine</text>
+
+                            <!-- Broker -->
+                            <rect x="118" y="36" width="80" height="84" rx="10" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
+                            <text x="158" y="62" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9" font-weight="700" fill="#059669">Broker</text>
+                            <text x="158" y="76" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">retained msgs</text>
+                            <text x="158" y="88" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">sub-second</text>
+                            <text x="158" y="100" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" font-weight="600" fill="#059669">EMQX Streams</text>
+                            <text x="158" y="111" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6" fill="#94a3b8">historical replay</text>
+
+                            <!-- Subscribers -->
+                            <rect x="242" y="16" width="90" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)"/>
+                            <text x="287" y="34" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Web Clients</text>
+                            <rect x="242" y="56" width="90" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)"/>
+                            <text x="287" y="74" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Mobile Apps</text>
+                            <rect x="242" y="96" width="90" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)"/>
+                            <text x="287" y="114" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">In-venue Displays</text>
+                            <rect x="242" y="136" width="90" height="28" rx="6" fill="rgba(139,92,246,0.08)" stroke="rgba(139,92,246,0.25)"/>
+                            <text x="287" y="150" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" font-weight="600" fill="#7c3aed">App opened</text>
+                            <text x="287" y="160" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6" fill="#94a3b8">→ retained = current odds</text>
+
+                            <!-- Arrows -->
+                            <line x1="78" y1="78" x2="118" y2="78" stroke="rgba(245,158,11,0.4)" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="198" y1="56" x2="242" y2="30" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <line x1="198" y1="70" x2="242" y2="70" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <line x1="198" y1="84" x2="242" y2="110" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <line x1="198" y1="98" x2="242" y2="150" stroke="rgba(139,92,246,0.25)" stroke-width="1.2" stroke-dasharray="4 3"/>
+                        </svg>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- ─────────────────────────────────────── -->
-        <!-- Slide 10: Key points                    -->
+        <!-- Slide 8: Beyond gaming (2)              -->
         <!-- ─────────────────────────────────────── -->
-        <div class="slide slide-centered" id="s10">
+        <div class="slide slide-centered" id="s8">
+            <span class="slide-tag">Discussion</span>
+            <h2>Where else do these patterns apply?</h2>
+            <div class="slide-content">
+                <div class="g2" style="height:auto">
+                    <div class="card" style="display:flex;flex-direction:column;align-items:center">
+                        <h3 style="align-self:flex-start">Collaborative editing</h3>
+                        <svg viewBox="0 0 340 170" fill="none" style="width:100%;margin:0.4rem 0">
+                            <!-- Editors -->
+                            <rect x="8" y="20" width="70" height="32" rx="7" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)" stroke-width="1.2"/>
+                            <text x="43" y="40" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Editor A</text>
+                            <rect x="8" y="64" width="70" height="32" rx="7" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)" stroke-width="1.2"/>
+                            <text x="43" y="84" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Editor B</text>
+                            <rect x="8" y="108" width="70" height="32" rx="7" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)" stroke-width="1.2"/>
+                            <text x="43" y="128" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Editor C</text>
+
+                            <!-- Broker -->
+                            <rect x="128" y="34" width="80" height="92" rx="10" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
+                            <text x="168" y="60" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9" font-weight="700" fill="#059669">Broker</text>
+                            <text x="168" y="76" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">cursor · shapes</text>
+                            <text x="168" y="88" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">presence</text>
+                            <text x="168" y="100" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">batch at display Hz</text>
+
+                            <!-- Topic labels -->
+                            <rect x="240" y="24" width="94" height="22" rx="5" fill="rgba(139,92,246,0.06)" stroke="rgba(139,92,246,0.2)"/>
+                            <text x="287" y="39" text-anchor="middle" font-family="Geist Mono,monospace" font-size="6.5" font-weight="600" fill="#7c3aed">doc/42/cursor/#</text>
+                            <rect x="240" y="56" width="94" height="22" rx="5" fill="rgba(139,92,246,0.06)" stroke="rgba(139,92,246,0.2)"/>
+                            <text x="287" y="71" text-anchor="middle" font-family="Geist Mono,monospace" font-size="6.5" font-weight="600" fill="#7c3aed">doc/42/shapes/#</text>
+                            <rect x="240" y="88" width="94" height="22" rx="5" fill="rgba(139,92,246,0.06)" stroke="rgba(139,92,246,0.2)"/>
+                            <text x="287" y="103" text-anchor="middle" font-family="Geist Mono,monospace" font-size="6.5" font-weight="600" fill="#7c3aed">doc/42/presence</text>
+
+                            <!-- Arrows: editors ↔ broker -->
+                            <line x1="78" y1="36" x2="128" y2="55" stroke="rgba(96,165,250,0.3)" stroke-width="1.2"/>
+                            <line x1="78" y1="80" x2="128" y2="80" stroke="rgba(96,165,250,0.3)" stroke-width="1.2"/>
+                            <line x1="78" y1="124" x2="128" y2="105" stroke="rgba(96,165,250,0.3)" stroke-width="1.2"/>
+                            <!-- Arrows: broker → topics -->
+                            <line x1="208" y1="60" x2="240" y2="35" stroke="rgba(16,185,129,0.3)" stroke-width="1.1"/>
+                            <line x1="208" y1="75" x2="240" y2="67" stroke="rgba(16,185,129,0.3)" stroke-width="1.1"/>
+                            <line x1="208" y1="90" x2="240" y2="99" stroke="rgba(16,185,129,0.3)" stroke-width="1.1"/>
+
+                            <!-- Note -->
+                            <text x="170" y="155" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" fill="#94a3b8">bidirectional — every editor publishes &amp; subscribes</text>
+                        </svg>
+                    </div>
+                    <div class="card" style="display:flex;flex-direction:column;align-items:center">
+                        <h3 style="align-self:flex-start">Messaging &amp; social</h3>
+                        <svg viewBox="0 0 340 170" fill="none" style="width:100%;margin:0.4rem 0">
+                            <!-- Users online -->
+                            <rect x="8" y="24" width="70" height="28" rx="7" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)" stroke-width="1.2"/>
+                            <text x="43" y="42" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">User A</text>
+                            <circle cx="72" cy="28" r="4" fill="#22c55e"/>
+
+                            <rect x="8" y="64" width="70" height="28" rx="7" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)" stroke-width="1.2"/>
+                            <text x="43" y="82" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">User B</text>
+                            <circle cx="72" cy="68" r="4" fill="#22c55e"/>
+
+                            <!-- User offline -->
+                            <rect x="8" y="104" width="70" height="28" rx="7" fill="rgba(148,163,184,0.06)" stroke="rgba(148,163,184,0.2)" stroke-width="1.2"/>
+                            <text x="43" y="122" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#94a3b8">User C</text>
+                            <circle cx="72" cy="108" r="4" fill="#94a3b8"/>
+                            <text x="43" y="144" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" fill="#94a3b8">offline</text>
+
+                            <!-- Broker -->
+                            <rect x="128" y="22" width="80" height="92" rx="10" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
+                            <text x="168" y="48" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9" font-weight="700" fill="#059669">Broker</text>
+                            <text x="168" y="64" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">typing · presence</text>
+                            <text x="168" y="76" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">read receipts</text>
+                            <text x="168" y="92" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" font-weight="600" fill="#059669">EMQX Msg Queue</text>
+                            <text x="168" y="104" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6" fill="#94a3b8">offline delivery</text>
+
+                            <!-- Queue visual -->
+                            <rect x="240" y="88" width="94" height="36" rx="7" fill="rgba(139,92,246,0.06)" stroke="rgba(139,92,246,0.2)"/>
+                            <text x="287" y="104" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" font-weight="600" fill="#7c3aed">Queued for User C</text>
+                            <text x="287" y="117" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" fill="#94a3b8">delivered on reconnect</text>
+
+                            <!-- Live delivery labels -->
+                            <rect x="240" y="24" width="94" height="22" rx="5" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.2)"/>
+                            <text x="287" y="39" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" font-weight="600" fill="#059669">live delivery</text>
+
+                            <!-- Arrows -->
+                            <line x1="78" y1="38" x2="128" y2="48" stroke="rgba(96,165,250,0.3)" stroke-width="1.2"/>
+                            <line x1="78" y1="78" x2="128" y2="70" stroke="rgba(96,165,250,0.3)" stroke-width="1.2"/>
+                            <line x1="78" y1="118" x2="128" y2="96" stroke="rgba(148,163,184,0.2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+                            <line x1="208" y1="50" x2="240" y2="35" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
+                            <line x1="208" y1="96" x2="240" y2="106" stroke="rgba(139,92,246,0.25)" stroke-width="1.2" stroke-dasharray="4 3"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────── -->
+        <!-- Slide 9: Key points                    -->
+        <!-- ─────────────────────────────────────── -->
+        <div class="slide slide-centered" id="s9">
             <span class="slide-tag">Summary</span>
             <h2>Three things to take away</h2>
             <div class="slide-content">
@@ -1145,36 +1253,26 @@ PUBLISH <span class="hi">$queue/player-commands/player/{id}/commands</span>
                     <div class="card">
                         <h3>Decouple transport from simulation</h3>
                         <ul class="bullets">
-                            <li>The broker absorbs 1M+ flaky mobile connections — TLS termination, keepalives, reconnect
-                                storms — so the game server never touches raw socket I/O</li>
-                            <li>Your game logic processes validated inputs. Fan-out, QoS, session persistence, and
-                                shared consumers are the broker's job</li>
-                            <li>The trade-off is ~10–20 ms of datacenter latency. For a cooperative social game,
-                                that's a reasonable trade for offloading connection management and fan-out entirely</li>
+                            <li>Broker absorbs 1M+ flaky connections — TLS, keepalives, reconnect storms</li>
+                            <li>Game logic processes inputs. Fan-out, QoS, sessions are the broker's job</li>
+                            <li>Trade-off: ~10-20 ms latency. Reasonable for cooperative/social games</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h3>Simplifying the backend</h3>
                         <ul class="bullets">
-                            <li>The broker shields the game server from connection chaos. An edge proxy can hold TCP
-                                connections during a backend crash, but the broker holds both the connections
-                                <em>and</em> the pub/sub routing state, allowing instant topology recovery.
-                            </li>
-                            <li>MQTT Streams can replace a dedicated Kafka cluster for many game event workloads — one
-                                fewer system to operate</li>
-                            <li>Retained Messages handle secondary state (cosmetics, flags, room weather) on reconnect —
-                                the game server doesn't package it</li>
+                            <li>Broker holds connections <em>and</em> routing state during crashes — instant topology recovery</li>
+                            <li>EMQX Streams (EMQX extension) can replace Kafka for game event workloads</li>
+                            <li>Retained Messages handle secondary state on reconnect — game server doesn't package it</li>
                         </ul>
                     </div>
                     <div class="card">
                         <h3>Failure modes and recovery</h3>
                         <ul class="bullets">
-                            <li><strong>Broker node failure:</strong> In a clustered broker, sessions migrate to surviving nodes.
-                                Clients reconnect to another node in the cluster and resume their subscriptions — no application-level orchestration required.</li>
-                            <li><strong>Backend crash:</strong> The broker holds client connections while game servers restart.
-                                Players stay connected; the new server instance subscribes and picks up where the old one left off.</li>
-                            <li><strong>Network transitions:</strong> Session persistence across IP changes — mobile clients switching
-                                between WiFi and cellular resume without full re-authentication or state resync.</li>
+                            <li><strong>Broker failure:</strong> Sessions migrate to surviving nodes, clients resume subscriptions</li>
+                            <li><strong>Backend crash:</strong> Broker holds connections while servers restart</li>
+                            <li><strong>Network switch:</strong> Session persistence across WiFi ↔ cellular — no re-auth needed</li>
+                            <li><strong>Offline clients:</strong> EMQX Message Queue holds missed events, delivers on reconnect</li>
                         </ul>
                     </div>
                 </div>
@@ -1182,28 +1280,24 @@ PUBLISH <span class="hi">$queue/player-commands/player/{id}/commands</span>
         </div>
 
         <!-- ─────────────────────────────────────── -->
-        <!-- Slide 11: Q&A                           -->
+        <!-- Slide 10: Q&A                          -->
         <!-- ─────────────────────────────────────── -->
-        <div class="slide slide-centered" id="s11">
+        <div class="slide slide-centered" id="s10">
             <span class="slide-tag">Q&amp;A</span>
             <h2>Open discussion</h2>
             <div class="slide-content">
                 <div class="vert">
                     <div class="disc-box">
                         <h3>1</h3>
-                        <p>If your game needs authoritative physics or sub-10ms latency for the hot loop, where does a
-                            message broker fit? Can it coexist with a direct UDP path for position updates while handling
-                            the rest (chat, inventory, matchmaking, events) over MQTT?</p>
+                        <p>Can a broker coexist with direct UDP for the hot loop — MQTT for chat, inventory, events; UDP for position updates?</p>
                     </div>
                     <div class="disc-box">
                         <h3>2</h3>
-                        <p>What's your current reconnect strategy — and how long does it take a mobile client to get
-                            back to a "live" state after a network transition?</p>
+                        <p>How long does it take your mobile clients to reach a "live" state after a network transition?</p>
                     </div>
                     <div class="disc-box">
                         <h3>3</h3>
-                        <p>If you already run an edge proxy (Envoy, HAProxy, etc.), what is it doing beyond TCP load
-                            balancing — and what would change if it also understood pub/sub routing?</p>
+                        <p>If you already run an edge proxy — what would change if it also understood pub/sub routing?</p>
                     </div>
 
                 </div>
