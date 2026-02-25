@@ -780,7 +780,7 @@
             <p class="title-sub">A case study: MQTT at 1M+ concurrent connections in a social massively multiplayer
                 online game</p>
             <p class="title-sub" style="font-size:0.9rem;margin-top:1.8rem">MQTT Beyond Meetup · 2026</p>
-            <p class="title-sub" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.7">Generalized from a real production deployment.</p>
+            <p class="title-sub" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.7">Generalized from real production deployments.</p>
         </div>
 
         <!-- ─────────────────────────────────────── -->
@@ -803,7 +803,7 @@
                             style="background:linear-gradient(135deg,#60a5fa,#6366f1);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">
                             1M+</div>
                         <div class="stat-lbl">Messages / second</div>
-                        <div class="stat-sub">~100 bytes · ingest only</div>
+                        <div class="stat-sub">~100 bytes · ingress only</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-num"
@@ -820,10 +820,8 @@
                         <div class="stat-sub">iOS + Android</div>
                     </div>
                 </div>
-                <p class="text-muted">Cooperative, non-competitive — players share the same world in bounded rooms (~200 players each).
-                    The room boundary is the fan-out boundary. Broker egress is orders of magnitude higher than ingest.</p>
-                <p class="text-muted" style="margin-top:0.6rem">Originally HTTP-based. Replaced due to latency spikes under load,
-                    mobile disconnects on network transitions, and fan-out complexity scaling with room size.</p>
+                <p class="text-muted"><strong>Cooperative, non-competitive:</strong> players explore a massive shared world, dynamically matching into seamless local instances. The fan-out is heavy on social presence: player movement, expressive gestures, chat, and "holding hands" across instances. Broker egress is orders of magnitude higher than ingress.</p>
+                <p class="text-muted" style="margin-top:0.6rem">Originally relied on HTTP polling and custom edge gateways. Replaced due to latency spikes under flash crowds, mobile disconnects on network transitions, and the sheer engineering cost of maintaining in-house fan-out routing at scale.</p>
                 <p class="text-muted" style="margin-top:0.6rem"><strong>Scope:</strong> This fits cooperative/social games.
                     Competitive games with authoritative physics would position the broker differently.</p>
             </div>
@@ -1051,14 +1049,14 @@
                         </ul>
                     </div>
                     <div class="card card-good">
-                        <h3 class="good">What you get in return</h3>
-                        <ul class="bullets">
-                            <li><strong>Unified edge.</strong> One layer for transport connectivity <em>and</em> pub/sub routing — replaces proxy + custom fan-out code</li>
-                            <li><strong>Erlang/OTP runtime.</strong> Preemptive scheduling, soft-realtime GC, no stop-the-world pauses at 1M connections</li>
-                            <li><strong>Session persistence.</strong> Mobile clients survive WiFi ↔ cellular without re-auth or full state resync</li>
-                            <li><strong>Open standard.</strong> MQTT is an OASIS/ISO standard — no vendor lock-in, broad client library support across languages and platforms</li>
-                            <li><strong>EMQX Streams + Message Queue.</strong> Event replay without Kafka, offline delivery for mobile clients (EMQX-specific extensions — covered in the previous talk)</li>
-                        </ul>
+                      <h3 class="good">What you get in return</h3>
+                      <ul class="bullets">
+                        <li><strong>Unified edge.</strong> One layer for transport connectivity <em>and</em> pub/sub routing — replaces proxy + custom fan-out code.</li>
+                        <li><strong>Session persistence.</strong> Mobile clients survive WiFi ↔ cellular without re-auth or full state resync.</li>
+                        <li><strong>Open standard.</strong> MQTT is an OASIS standard. No proprietary SDK lock-in.</li>
+                        <li><strong>Predictable Infrastructure Costs.</strong> Replaces usage-based SaaS billing (per-message/per-MAU) with flat, predictable compute costs.</li>
+                        <li><strong>EMQX Streams + Message Queue.</strong> Event replay without Kafka, offline delivery for mobile clients.</li>
+                      </ul>
                     </div>
                 </div>
             </div>
@@ -1110,38 +1108,57 @@
                         </svg>
                     </div>
                     <div class="card" style="display:flex;flex-direction:column;align-items:center">
-                        <h3 style="align-self:flex-start">Sports betting / live events</h3>
-                        <svg viewBox="0 0 340 170" fill="none" style="width:100%;margin:0.4rem 0">
-                            <!-- Odds engine -->
-                            <rect x="8" y="58" width="70" height="40" rx="8" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
-                            <text x="43" y="75" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" font-weight="700" fill="#d97706">Odds</text>
-                            <text x="43" y="88" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#94a3b8">engine</text>
+                        <h3 style="align-self:flex-start">Location-based social &amp; mobility</h3>
+                        <svg viewBox="0 0 340 190" fill="none" style="width:100%;margin:0.4rem 0">
+                            <!-- Mobile apps (left) -->
+                            <rect x="8" y="14" width="62" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)" stroke-width="1.2"/>
+                            <text x="39" y="32" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" font-weight="600" fill="#2563eb">App A</text>
+                            <rect x="8" y="50" width="62" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)" stroke-width="1.2"/>
+                            <text x="39" y="68" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" font-weight="600" fill="#2563eb">App B</text>
+                            <rect x="8" y="86" width="62" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)" stroke-width="1.2"/>
+                            <text x="39" y="104" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" font-weight="600" fill="#2563eb">App C</text>
+                            <text x="39" y="128" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" fill="#94a3b8">lat/lon every 3s</text>
 
-                            <!-- Broker -->
-                            <rect x="118" y="36" width="80" height="84" rx="10" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
-                            <text x="158" y="62" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9" font-weight="700" fill="#059669">Broker</text>
-                            <text x="158" y="76" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">retained msgs</text>
-                            <text x="158" y="88" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" fill="#64748b">sub-second</text>
-                            <text x="158" y="100" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" font-weight="600" fill="#059669">EMQX Streams</text>
-                            <text x="158" y="111" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6" fill="#94a3b8">historical replay</text>
+                            <!-- Broker (center) -->
+                            <rect x="108" y="20" width="76" height="90" rx="10" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.35)" stroke-width="1.2"/>
+                            <text x="146" y="46" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="9" font-weight="700" fill="#059669">Broker</text>
+                            <text x="146" y="62" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" fill="#64748b">loc/user/{id}</text>
+                            <text x="146" y="76" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" fill="#64748b">$share/geohash</text>
+                            <text x="146" y="90" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" fill="#64748b">topics</text>
 
-                            <!-- Subscribers -->
-                            <rect x="242" y="16" width="90" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)"/>
-                            <text x="287" y="34" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Web Clients</text>
-                            <rect x="242" y="56" width="90" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)"/>
-                            <text x="287" y="74" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">Mobile Apps</text>
-                            <rect x="242" y="96" width="90" height="28" rx="6" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.25)"/>
-                            <text x="287" y="114" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2563eb">In-venue Displays</text>
-                            <rect x="242" y="136" width="90" height="28" rx="6" fill="rgba(139,92,246,0.08)" stroke="rgba(139,92,246,0.25)"/>
-                            <text x="287" y="150" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="7" font-weight="600" fill="#7c3aed">App opened</text>
-                            <text x="287" y="160" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6" fill="#94a3b8">→ retained = current odds</text>
+                            <!-- Rule Engine (bottom-center) -->
+                            <rect x="100" y="138" width="92" height="40" rx="8" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" stroke-width="1.2"/>
+                            <text x="146" y="157" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="8" font-weight="700" fill="#d97706">Rule Engine</text>
+                            <text x="146" y="170" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" fill="#94a3b8">geohash filter</text>
 
-                            <!-- Arrows -->
-                            <line x1="78" y1="78" x2="118" y2="78" stroke="rgba(245,158,11,0.4)" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="198" y1="56" x2="242" y2="30" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
-                            <line x1="198" y1="70" x2="242" y2="70" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
-                            <line x1="198" y1="84" x2="242" y2="110" stroke="rgba(16,185,129,0.3)" stroke-width="1.2"/>
-                            <line x1="198" y1="98" x2="242" y2="150" stroke="rgba(139,92,246,0.25)" stroke-width="1.2" stroke-dasharray="4 3"/>
+                            <!-- Friends receiving (right) -->
+                            <rect x="228" y="14" width="106" height="28" rx="6" fill="rgba(139,92,246,0.08)" stroke="rgba(139,92,246,0.25)"/>
+                            <text x="281" y="28" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" font-weight="600" fill="#7c3aed">Friend in bounding box</text>
+                            <text x="281" y="38" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="5.5" fill="#94a3b8">→ sees update on map</text>
+                            <rect x="228" y="54" width="106" height="28" rx="6" fill="rgba(139,92,246,0.08)" stroke="rgba(139,92,246,0.25)"/>
+                            <text x="281" y="68" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" font-weight="600" fill="#7c3aed">Friend in bounding box</text>
+                            <text x="281" y="78" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="5.5" fill="#94a3b8">→ sees update on map</text>
+                            <rect x="228" y="94" width="106" height="28" rx="6" fill="rgba(148,163,184,0.06)" stroke="rgba(148,163,184,0.2)"/>
+                            <text x="281" y="108" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="6.5" font-weight="600" fill="#94a3b8">Friend out of range</text>
+                            <text x="281" y="118" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="5.5" fill="#94a3b8">→ no update</text>
+
+                            <!-- Arrows: apps → broker (publish) -->
+                            <line x1="70" y1="28" x2="108" y2="42" stroke="rgba(96,165,250,0.3)" stroke-width="1.2"/>
+                            <line x1="70" y1="64" x2="108" y2="58" stroke="rgba(96,165,250,0.3)" stroke-width="1.2"/>
+                            <line x1="70" y1="100" x2="108" y2="78" stroke="rgba(96,165,250,0.3)" stroke-width="1.2"/>
+
+                            <!-- Arrow: broker → rule engine (down) -->
+                            <line x1="136" y1="110" x2="136" y2="138" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"/>
+                            <text x="122" y="128" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="5.5" fill="#d97706">raw loc</text>
+
+                            <!-- Arrow: rule engine → broker (up, re-publish) -->
+                            <line x1="156" y1="138" x2="156" y2="110" stroke="rgba(16,185,129,0.4)" stroke-width="1.5"/>
+                            <text x="172" y="128" text-anchor="middle" font-family="Geist,system-ui,sans-serif" font-size="5.5" fill="#059669">filtered</text>
+
+                            <!-- Arrows: broker → friends (deliver) -->
+                            <line x1="184" y1="42" x2="228" y2="28" stroke="rgba(139,92,246,0.3)" stroke-width="1.2"/>
+                            <line x1="184" y1="58" x2="228" y2="68" stroke="rgba(139,92,246,0.3)" stroke-width="1.2"/>
+                            <line x1="184" y1="78" x2="228" y2="108" stroke="rgba(148,163,184,0.15)" stroke-width="1.2" stroke-dasharray="4 3"/>
                         </svg>
                     </div>
                 </div>
@@ -1550,7 +1567,7 @@
                 { id: 'ea', source: 'emqx', target: 'auth', animated: false, style: ESdim },
                 // Auth → MongoDB
                 { id: 'adb', source: 'auth', target: 'authdb', animated: false, style: ESdim },
-                // EMQX → 3 Game Servers (ingest)
+                // EMQX → 3 Game Servers (ingress)
                 { id: 'eg1', source: 'emqx', target: 'gs1', animated: true, style: ES, type: 'smoothstep' },
                 { id: 'eg2', source: 'emqx', target: 'gs2', animated: true, style: ES, type: 'smoothstep' },
                 { id: 'eg3', source: 'emqx', target: 'gs3', animated: true, style: ES, type: 'smoothstep' },
